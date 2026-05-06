@@ -1,0 +1,446 @@
+@import "tailwindcss";
+
+/* =========================================================
+   TREIZE ADMIN PANEL THEME
+   Elegant luxury + professional dashboard
+   Supports:
+   - Light Mode (Brand based)
+   - Dark Mode (Premium admin)
+   - Sidebar / Cards / Inputs / Tables / Buttons
+   ========================================================= */
+
+:root {
+  /* =========================
+     BRAND CORE (TREIZE DNA)
+     ========================= */
+  --primary: #b07154;
+  --primary-hover: #9b6045;
+  --primary-foreground: #ffffff;
+
+  --secondary: #c9a084;
+  --secondary-hover: #b68d73;
+  --secondary-foreground: #ffffff;
+
+  --accent: #311f13;
+  --accent-soft: #5a3d2c;
+
+  /* =========================
+     LIGHT MODE
+     ========================= */
+  --background: #fffdfc;
+  --foreground: #3a2317;
+
+  --sidebar: #f4f1e8;
+  --sidebar-foreground: #311f13;
+
+  --card: #ffffff;
+  --card-foreground: #3a2317;
+
+  --popover: #ffffff;
+  --popover-foreground: #3a2317;
+
+  --muted: #f4f1e8;
+  --muted-foreground: #6b4b3a;
+
+  --border: #e7d2c2;
+  --input: #ffffff;
+  --ring: rgba(176, 113, 84, 0.35);
+
+  /* =========================
+     STATUS COLORS
+     ========================= */
+  --success: #15803d;
+  --warning: #d97706;
+  --danger: #dc2626;
+  --info: #2563eb;
+
+  /* =========================
+     GRADIENTS
+     ========================= */
+  --gradient-primary: linear-gradient(135deg, #b07154, #a87e62);
+  --gradient-dark: linear-gradient(135deg, #3a2317, #311f13);
+  --gradient-sidebar: linear-gradient(180deg, #f4f1e8, #ebe3d6);
+
+  /* =========================
+     SHADOWS
+     ========================= */
+  --shadow-sm: 0 2px 4px rgba(58, 35, 23, 0.06);
+  --shadow-md: 0 8px 20px rgba(58, 35, 23, 0.08);
+  --shadow-lg: 0 20px 40px rgba(58, 35, 23, 0.12);
+
+  /* =========================
+     TYPOGRAPHY
+     ========================= */
+  --sans:
+    Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto,
+    sans-serif;
+  --heading:
+    "Playfair Display", Georgia, Cambria, "Times New Roman", serif;
+  --mono:
+    "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
+    monospace;
+
+  /* =========================
+     RADIUS
+     ========================= */
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 20px;
+  --radius-xl: 28px;
+
+  /* =========================
+     BASE SYSTEM
+     ========================= */
+  font: 16px/1.6 var(--sans);
+  letter-spacing: 0.01em;
+
+  color-scheme: light;
+  color: var(--foreground);
+  background: var(--background);
+
+  font-synthesis: none;
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  scroll-behavior: smooth;
+}
+
+/* =========================================================
+   DARK MODE
+   Add class="dark" to html/body OR system preference
+   ========================================================= */
+/* Manual dark mode using class */
+.dark {
+  --primary: #c9a084;
+  --primary-hover: #d6b79e;
+  --primary-foreground: #16110d;
+
+  --secondary: #8b6b56;
+  --secondary-hover: #a07c64;
+  --secondary-foreground: #ffffff;
+
+  --accent: #f4e7dc;
+  --accent-soft: #d8c2b1;
+
+  --background: #14110f;
+  --foreground: #f4e7dc;
+
+  --sidebar: #1c1714;
+  --sidebar-foreground: #f4e7dc;
+
+  --card: #201a17;
+  --card-foreground: #f4e7dc;
+
+  --popover: #241d19;
+  --popover-foreground: #f4e7dc;
+
+  --muted: #2a221d;
+  --muted-foreground: #c4ab98;
+
+  --border: #3b3028;
+  --input: #2a221d;
+  --ring: rgba(201, 160, 132, 0.35);
+
+  --success: #22c55e;
+  --warning: #f59e0b;
+  --danger: #ef4444;
+  --info: #60a5fa;
+
+  --gradient-primary: linear-gradient(135deg, #c9a084, #8b6b56);
+  --gradient-dark: linear-gradient(135deg, #14110f, #241d19);
+  --gradient-sidebar: linear-gradient(180deg, #1c1714, #14110f);
+
+  --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.25);
+  --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.35);
+  --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.45);
+
+  color-scheme: dark;
+}
+
+/* Auto dark mode from system */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --primary: #c9a084;
+    --primary-hover: #d6b79e;
+    --primary-foreground: #16110d;
+
+    --secondary: #8b6b56;
+    --secondary-hover: #a07c64;
+    --secondary-foreground: #ffffff;
+
+    --accent: #f4e7dc;
+    --accent-soft: #d8c2b1;
+
+    --background: #14110f;
+    --foreground: #f4e7dc;
+
+    --sidebar: #1c1714;
+    --sidebar-foreground: #f4e7dc;
+
+    --card: #201a17;
+    --card-foreground: #f4e7dc;
+
+    --popover: #241d19;
+    --popover-foreground: #f4e7dc;
+
+    --muted: #2a221d;
+    --muted-foreground: #c4ab98;
+
+    --border: #3b3028;
+    --input: #2a221d;
+    --ring: rgba(201, 160, 132, 0.35);
+
+    --success: #22c55e;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --info: #60a5fa;
+
+    --gradient-primary: linear-gradient(135deg, #c9a084, #8b6b56);
+    --gradient-dark: linear-gradient(135deg, #14110f, #241d19);
+    --gradient-sidebar: linear-gradient(180deg, #1c1714, #14110f);
+
+    --shadow-sm: 0 2px 4px rgba(0, 0, 0, 0.25);
+    --shadow-md: 0 8px 20px rgba(0, 0, 0, 0.35);
+    --shadow-lg: 0 20px 40px rgba(0, 0, 0, 0.45);
+
+    color-scheme: dark;
+  }
+}
+
+/* =========================================================
+   GLOBAL RESET
+   ========================================================= */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+  border-color: var(--border);
+}
+
+* {
+  margin: 0;
+  padding: 0;
+}
+
+html,
+body {
+  min-height: 100%;
+  width: 100%;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--sans);
+  transition:
+    background-color 0.35s ease,
+    color 0.35s ease,
+    border-color 0.35s ease;
+}
+
+/* =========================================================
+   ROOT APP LAYOUT
+   ========================================================= */
+#root {
+  min-height: 100svh;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  background: var(--background);
+}
+
+/* =========================================================
+   TYPOGRAPHY
+   ========================================================= */
+h1,
+h2,
+h3,
+h4,
+h5,
+h6 {
+  font-family: var(--heading);
+  color: var(--foreground);
+  line-height: 1.2;
+  letter-spacing: -0.02em;
+}
+
+p,
+span,
+label,
+li {
+  color: var(--muted-foreground);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* =========================================================
+   FORMS
+   ========================================================= */
+input,
+textarea,
+select {
+  width: 100%;
+  border: 1px solid var(--border);
+  background: var(--input);
+  color: var(--foreground);
+  border-radius: var(--radius-md);
+  padding: 0.85rem 1rem;
+  outline: none;
+  transition: all 0.25s ease;
+}
+
+input:focus,
+textarea:focus,
+select:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 4px var(--ring);
+}
+
+/* =========================================================
+   BUTTONS
+   ========================================================= */
+button {
+  cursor: pointer;
+  border: none;
+  outline: none;
+  font: inherit;
+  transition: all 0.25s ease;
+}
+
+.btn-primary {
+  background: var(--gradient-primary);
+  color: var(--primary-foreground);
+  padding: 0.9rem 1.25rem;
+  border-radius: var(--radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+
+.btn-secondary {
+  background: var(--muted);
+  color: var(--foreground);
+  padding: 0.9rem 1.25rem;
+  border-radius: var(--radius-md);
+  border: 1px solid var(--border);
+}
+
+/* =========================================================
+   CARDS
+   ========================================================= */
+.card {
+  background: var(--card);
+  color: var(--card-foreground);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-sm);
+  padding: 1.5rem;
+  transition: all 0.3s ease;
+}
+
+.card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-3px);
+}
+
+/* =========================================================
+   TABLES
+   ========================================================= */
+table {
+  width: 100%;
+  border-collapse: collapse;
+  background: var(--card);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+
+th,
+td {
+  padding: 1rem;
+  border-bottom: 1px solid var(--border);
+  text-align: left;
+}
+
+th {
+  background: var(--muted);
+  color: var(--foreground);
+  font-weight: 600;
+}
+
+/* =========================================================
+   SCROLLBAR
+   ========================================================= */
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--muted);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--secondary);
+  border-radius: 999px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--primary);
+}
+
+/* =========================================================
+   CODE BLOCKS
+   ========================================================= */
+code,
+pre {
+  font-family: var(--mono);
+  background: var(--muted);
+  color: var(--foreground);
+  border-radius: var(--radius-sm);
+}
+
+/* =========================================================
+   UTILITIES
+   ========================================================= */
+.glass {
+  backdrop-filter: blur(14px);
+  background: color-mix(in srgb, var(--card) 75%, transparent);
+  border: 1px solid color-mix(in srgb, var(--border) 70%, transparent);
+}
+
+.sidebar-bg {
+  background: var(--gradient-sidebar);
+}
+
+.text-gradient {
+  background: var(--gradient-primary);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+@media (max-width: 1024px) {
+  :root {
+    font-size: 15px;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    font-size: 14px;
+  }
+
+  .card {
+    padding: 1rem;
+  }
+}
