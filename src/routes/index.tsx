@@ -4,6 +4,8 @@ import { createBrowserRouter } from "react-router-dom";
 /* Layout */
 import DashboardPage from "@/pages/dashboard";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import ProductsPage from "@/pages/allProducts";
+import AddProduct from "@/pages/addNewProduct";
 
 /* Pages */
 // import Products from "@/pages/products/Products";
@@ -33,19 +35,19 @@ export const router = createBrowserRouter([
       },
 
       /* Products */
-    //   {
-    //     path: "products",
-    //     children: [
-    //       {
-    //         index: true,
-    //         element: <Products />,
-    //       },
-    //       {
-    //         path: "new",
-    //         element: <AddProduct />,
-    //       },
-    //     ],
-    //   },
+      {
+        path: "products",
+        children: [
+          {
+            index: true,
+            element: <ProductsPage />,
+          },
+          {
+            path: "new",
+            element: <AddProduct />,
+          },
+        ],
+      },
 
     //   /* Orders */
     //   {

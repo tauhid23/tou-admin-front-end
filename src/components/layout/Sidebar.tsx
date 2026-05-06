@@ -9,7 +9,7 @@ import {
   Palette, Truck, Star,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { NavLink, useLocation } from "react-router-dom";
+import {useNavigate, NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -326,6 +326,7 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [openMenus, setOpenMenus] = useState<string[]>(["Products"]);
   const location = useLocation();
+  const navigate = useNavigate();
 
   const toggleMenu = (title: string) =>
     setOpenMenus((prev) =>
@@ -340,7 +341,7 @@ export default function Sidebar() {
     <motion.aside
       animate={{ width: collapsed ? 78 : 282 }}
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-      className="relative h-screen flex flex-col overflow-hidden border-r border-neutral-100 bg-white shadow-xl"
+      className="sticky top-0 h-screen flex flex-col overflow-hidden border-r border-neutral-100 bg-white shadow-xl"
     >
       {/* ── Logo ─────────────────────────────────── */}
       <div
@@ -409,7 +410,13 @@ export default function Sidebar() {
                   <div key={item.title}>
                     <Tooltip label={item.title} show={collapsed}>
                       <div
-                        onClick={() => item.children && toggleMenu(item.title)}
+                        onClick={() => {
+  if (item.children) {
+    toggleMenu(item.title);
+  } else {
+    navigate(item.path);
+  }
+}}
                         className={cn(
                           "group relative flex items-center justify-between px-3 py-3 rounded-2xl cursor-pointer transition-all duration-200",
                           itemActive

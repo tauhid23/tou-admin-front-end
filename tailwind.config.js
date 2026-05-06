@@ -1,37 +1,36 @@
 /** @type {import('tailwindcss').Config} */
-export default {
+module.exports = {
   content: [
-    "./index.html",
     "./src/**/*.{js,ts,jsx,tsx}",
   ],
   theme: {
     extend: {
       colors: {
-        // Brand colors
-        primary: "rgb(var(--primary) / <alpha-value>)",
-        "primary-hover": "rgb(var(--primary-hover) / <alpha-value>)",
-        secondary: "rgb(var(--secondary) / <alpha-value>)",
-        "secondary-hover": "rgb(var(--secondary-hover) / <alpha-value>)",
-        accent: "rgb(var(--accent) / <alpha-value>)",
-        "accent-soft": "rgb(var(--accent-soft) / <alpha-value>)",
+        primary: "var(--primary)",
+        "primary-hover": "var(--primary-hover)",
         
-        // Base colors
-        background: "rgb(var(--background) / <alpha-value>)",
-        foreground: "rgb(var(--foreground) / <alpha-value>)",
-        sidebar: "rgb(var(--sidebar) / <alpha-value>)",
-        card: "rgb(var(--card) / <alpha-value>)",
+        secondary: "var(--secondary)",
+        "secondary-hover": "var(--secondary-hover)",
         
-        // Component colors
-        muted: "rgb(var(--muted) / <alpha-value>)",
-        "muted-foreground": "rgb(var(--muted-foreground) / <alpha-value>)",
-        border: "rgb(var(--border) / <alpha-value>)",
-        input: "rgb(var(--input) / <alpha-value>)",
+        accent: "var(--accent)",          
+        "accent-soft": "var(--accent-soft)",
         
-        // Status colors
-        success: "rgb(var(--success) / <alpha-value>)",
-        warning: "rgb(var(--warning) / <alpha-value>)",
-        danger: "rgb(var(--danger) / <alpha-value>)",
-        info: "rgb(var(--info) / <alpha-value>)",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        
+        sidebar: "var(--sidebar)",
+        card: "var(--card)",
+        
+        muted: "var(--muted)",
+        "muted-foreground": "var(--muted-foreground)",
+        
+        border: "var(--border)",
+        input: "var(--input)",
+        
+        success: "var(--success)",
+        warning: "var(--warning)",
+        danger: "var(--danger)",
+        info: "var(--info)",
       },
     },
   },
