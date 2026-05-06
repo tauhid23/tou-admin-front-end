@@ -1,0 +1,177 @@
+// src/data/dashboardData.ts
+
+import type {
+  StatCardData,
+  RevenuePoint,
+  Order,
+  TopProduct,
+  TrafficSource,
+} from "@/pages/dashboard/_components/types";
+
+export const statCards: StatCardData[] = [
+  {
+    title: "Total Revenue",
+    value: "12,450",
+    prefix: "$",
+    change: 12.5,
+    changeLabel: "vs last month",
+    icon: "DollarSign",
+  },
+  {
+    title: "Total Orders",
+    value: "1,245",
+    change: 8.2,
+    changeLabel: "vs last month",
+    icon: "ShoppingCart",
+  },
+  {
+    title: "Customers",
+    value: "845",
+    change: -3.1,
+    changeLabel: "vs last month",
+    icon: "Users",
+  },
+  {
+    title: "Conversion Rate",
+    value: "4.8",
+    suffix: "%",
+    change: 1.4,
+    changeLabel: "vs last month",
+    icon: "TrendingUp",
+  },
+];
+
+export const revenueData: RevenuePoint[] = [
+  { date: "Jan 1",  revenue: 4200,  orders: 84  },
+  { date: "Jan 5",  revenue: 5800,  orders: 102 },
+  { date: "Jan 10", revenue: 4900,  orders: 91  },
+  { date: "Jan 15", revenue: 7200,  orders: 138 },
+  { date: "Jan 20", revenue: 6500,  orders: 120 },
+  { date: "Jan 25", revenue: 8100,  orders: 155 },
+  { date: "Feb 1",  revenue: 7400,  orders: 141 },
+  { date: "Feb 5",  revenue: 9200,  orders: 174 },
+  { date: "Feb 10", revenue: 8600,  orders: 163 },
+  { date: "Feb 15", revenue: 10400, orders: 198 },
+  { date: "Feb 20", revenue: 9800,  orders: 186 },
+  { date: "Feb 25", revenue: 11200, orders: 210 },
+  { date: "Mar 1",  revenue: 10600, orders: 201 },
+  { date: "Mar 5",  revenue: 12450, orders: 235 },
+];
+
+export const recentOrders: Order[] = [
+  {
+    id: "#ORD-9821",
+    customer: "Tasnim Akter",
+    avatar: "TA",
+    product: "Nike Air Max 270",
+    amount: 149.99,
+    status: "completed",
+    date: "2 min ago",
+    channel: "web",
+  },
+  {
+    id: "#ORD-9820",
+    customer: "Rifat Hossain",
+    avatar: "RH",
+    product: "Sony WH-1000XM5",
+    amount: 349.00,
+    status: "processing",
+    date: "18 min ago",
+    channel: "mobile",
+  },
+  {
+    id: "#ORD-9819",
+    customer: "Nadia Islam",
+    avatar: "NI",
+    product: "Samsung 4K Monitor",
+    amount: 499.00,
+    status: "pending",
+    date: "45 min ago",
+    channel: "web",
+  },
+  {
+    id: "#ORD-9818",
+    customer: "Karim Uddin",
+    avatar: "KU",
+    product: "Apple AirPods Pro",
+    amount: 249.99,
+    status: "completed",
+    date: "1 hr ago",
+    channel: "mobile",
+  },
+  {
+    id: "#ORD-9817",
+    customer: "Sadia Rahman",
+    avatar: "SR",
+    product: "Logitech MX Master 3",
+    amount: 99.99,
+    status: "cancelled",
+    date: "2 hr ago",
+    channel: "web",
+  },
+  {
+    id: "#ORD-9816",
+    customer: "Farhan Kabir",
+    avatar: "FK",
+    product: "iPad Air M2",
+    amount: 749.00,
+    status: "completed",
+    date: "3 hr ago",
+    channel: "pos",
+  },
+];
+
+export const topProducts: TopProduct[] = [
+  {
+    id: "1",
+    name: "Sony WH-1000XM5",
+    category: "Electronics",
+    revenue: 8750,
+    units: 25,
+    growth: 22,
+    maxRevenue: 10000,
+  },
+  {
+    id: "2",
+    name: "Apple AirPods Pro",
+    category: "Electronics",
+    revenue: 7498,
+    units: 30,
+    growth: 15,
+    maxRevenue: 10000,
+  },
+  {
+    id: "3",
+    name: "Nike Air Max 270",
+    category: "Footwear",
+    revenue: 5998,
+    units: 40,
+    growth: -4,
+    maxRevenue: 10000,
+  },
+  {
+    id: "4",
+    name: "Samsung 4K Monitor",
+    category: "Electronics",
+    revenue: 4992,
+    units: 10,
+    growth: 31,
+    maxRevenue: 10000,
+  },
+  {
+    id: "5",
+    name: "Logitech MX Master 3",
+    category: "Accessories",
+    revenue: 3998,
+    units: 40,
+    growth: 8,
+    maxRevenue: 10000,
+  },
+];
+
+export const trafficSources: TrafficSource[] = [
+  { label: "Organic Search", value: 38, color: "bg-neutral-900" },
+  { label: "Direct",         value: 27, color: "bg-neutral-600" },
+  { label: "Social Media",   value: 20, color: "bg-neutral-400" },
+  { label: "Referral",       value: 15, color: "bg-neutral-200" },
+];

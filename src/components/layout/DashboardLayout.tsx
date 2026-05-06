@@ -1,7 +1,7 @@
 // src/components/layout/DashboardLayout.tsx
 import { Outlet } from "react-router-dom";
 import Sidebar from "./Sidebar";
-import Topbar from "./Topbar";
+// import Topbar from "./Topbar";
 
 export default function DashboardLayout() {
   return (
@@ -11,7 +11,7 @@ export default function DashboardLayout() {
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        <Topbar />
+        {/* <Topbar /> */}
 
         <main className="flex-1 p-6 md:p-8">
           <Outlet />

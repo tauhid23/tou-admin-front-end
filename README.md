@@ -71,4 +71,3 @@ export default defineConfig([
   },
 ])
 ```
-# tou-admin-front-end
