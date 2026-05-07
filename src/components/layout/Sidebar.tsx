@@ -80,7 +80,8 @@ const navGroups: NavGroup[] = [
         children: [
           { title: "All Customers", path: "/customers" },
           { title: "Customer Groups", path: "/customers/groups" },
-          { title: "Guest Checkouts", path: "/customers/guests" },
+          // { title: "Guest Checkouts", path: "/customers/guests" },
+          { title: "Guest Checkouts", path: "/guests" },
         ],
       },
       {
@@ -100,7 +101,7 @@ const navGroups: NavGroup[] = [
     items: [
       {
         title: "Coupons & Discounts",
-        path: "/marketing/coupons",
+        path: "/marketing",
         icon: Tag,
         children: [
           { title: "All Coupons", path: "/marketing/coupons" },

@@ -8,11 +8,9 @@ export default function DashboardLayout() {
     <div className="flex min-h-screen bg-neutral-50">
       {/* Sidebar */}
       <Sidebar />
-
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         <Topbar />
-
         <main className="flex-1 p-6 md:p-8">
           <Outlet />
         </main>
