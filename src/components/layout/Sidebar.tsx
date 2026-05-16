@@ -139,13 +139,13 @@ const navGroups: NavGroup[] = [
     items: [
       {
         title: "Appearance",
-        path: "/storefront/appearance",
+        path: "/appearance",
         icon: Palette,
         children: [
           { title: "Themes", path: "/storefront/themes" },
-          { title: "Banners & Sliders", path: "/storefront/banners" },
+          { title: "Banners & Sliders", path: "/appearance/banners-sliders" },
           { title: "Colour & Typography", path: "/storefront/branding" },
-          { title: "Logo & Favicon", path: "/storefront/logo" },
+          { title: "Logo & Favicon", path: "/appearance/logo-favicon" },
         ],
       },
       {
@@ -156,20 +156,23 @@ const navGroups: NavGroup[] = [
           { title: "All Pages", path: "/storefront/pages" },
           { title: "Homepage Sections", path: "/storefront/homepage" },
           { title: "Blog Posts", path: "/storefront/blog" },
-          { title: "Announcements", path: "/storefront/announcements" },
-          { title: "Taglines & Copy", path: "/storefront/copy" },
+          { title: "About Us", path: "/storefront/about-us"},
+          // { title: "Announcements", path: "/storefront/announcements" },
+          { title: "Taglines", path: "/storefront/tagline" },
+          // { title: "Header Menu", path: "/storefront/header" },
+          { title: "Footer Links", path: "/storefront/footer" },
         ],
       },
-      {
-        title: "Navigation",
-        path: "/storefront/navigation",
-        icon: Navigation,
-        children: [
-          { title: "Header Menu", path: "/storefront/navigation/header" },
-          { title: "Footer Links", path: "/storefront/navigation/footer" },
-          { title: "Mega Menu", path: "/storefront/navigation/mega" },
-        ],
-      },
+      // {
+      //   title: "Navigation",
+      //   path: "/storefront/navigation",
+      //   icon: Navigation,
+      //   children: [
+      //     { title: "Header Menu", path: "/storefront/navigation/header" },
+      //     { title: "Footer Links", path: "/storefront/navigation/footer" },
+      //     { title: "Mega Menu", path: "/storefront/navigation/mega" },
+      //   ],
+      // },
       {
         title: "Media Library",
         path: "/storefront/media",

@@ -18,6 +18,16 @@ import CarriersPage from "@/pages/CarriesPage";
 import DeliveryRulesPage from "@/pages/DeliveryRulesPage";
 import AllCouponsPage from "@/pages/AllCouponPage";
 import DiscountRulesPage from "@/pages/DiscountRulesPage";
+import SignInPage from "@/pages/Auth/SigninPage";
+// import BannersSliders from "@/pages/BannersAndSliders";
+import LogoFavicon from "@/pages/LogoFavicon";
+import BannersSlidersTwo from "@/pages/BannerTwo";
+import AllPages from "@/pages/AllPages";
+import BlogManager from "@/pages/BlogPost";
+import AboutUsEditor from "@/pages/AboutUs";
+import TaglinesManager from "@/pages/Tagline";
+import HeaderMenu from "@/pages/HeaderMenu";
+import FooterManager from "@/pages/Footer";
 // import FlashSalesPage from "@/pages/FlashSalePage";
 
 /* Pages */
@@ -128,6 +138,51 @@ export const router = createBrowserRouter([
           { path: "discounts", element: <DiscountRulesPage /> },
           // { path: "flash-sales", element: <FlashSalesPage /> },
         ],
+      },
+
+      // Storefront Appearance
+      {
+        path: "appearance",
+        children: [
+          {
+            index: true,
+          },
+          { path: "banners-sliders", element: <BannersSlidersTwo /> },
+          { path: "logo-favicon", element: <LogoFavicon /> },
+        ],
+      },
+
+      // Content and Pages
+      {
+        path: "storefront",
+        children: [
+          {
+            index: true,
+          },
+          { path: "/storefront/pages", element: <AllPages /> },
+          { path: "/storefront/blog", element: <BlogManager /> },
+          { path: "/storefront/about-us", element: <AboutUsEditor /> },
+          { path: "/storefront/tagline", element: <TaglinesManager /> },
+          { path: "/storefront/header", element: <HeaderMenu /> },
+          { path: "/storefront/footer", element: <FooterManager /> },
+        ],
+      },
+
+      // Links
+      // {
+      //   path: "storefront/navigation",
+      //   children: [
+      //     {
+      //       index: true,
+      //     },
+      //     { path: "/storefront/navigation/header", element: <HeaderMenu /> },
+      //     { path: "/storefront/navigation/header", element: <HeaderMenu /> },
+      //   ],
+      // },
+
+      {
+        path: "/login",
+        element: <SignInPage />,
       },
 
       //   /* Settings */

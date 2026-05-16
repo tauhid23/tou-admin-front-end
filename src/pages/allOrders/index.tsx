@@ -137,7 +137,7 @@ const AllOrdersPage: React.FC = () => {
               <Package className="w-9 h-9" />
               All Orders
             </h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">Manage and track all customer orders</p>
+            <p className="text-gray-500 dark:text-gray-400 mt-1">Manage and track all customer orders. I have to Make a new Order, So that admin can manually make a order</p>
           </div>
 
           <motion.button
