@@ -15,14 +15,12 @@ import {
   FileJson,
   FileSearch,
   FileText,
-  FolderTree,
   Gauge,
   Gift,
   Globe2,
   HelpCircle,
   Home,
   Image,
-  Layers3,
   Mail,
   Map,
   Megaphone,
@@ -48,6 +46,8 @@ import DashboardLayout from "@/components/layout/DashboardLayout";
 import ProductsPage from "@/pages/allProducts";
 import AddProduct from "@/pages/addNewProduct";
 import InventoryPage from "@/pages/Inventory";
+import CategoriesPage from "@/pages/Categories";
+import SubcategoriesPage from "@/pages/Subcategories";
 import ReviewsPage from "@/pages/Reviews";
 import AllOrdersPage from "@/pages/allOrders";
 import ReturnsAndRefundsPage from "@/pages/returnAndRefund";
@@ -120,25 +120,11 @@ export const router = createBrowserRouter([
           },
           {
             path: "categories",
-            element: (
-              <ManagementPage
-                title="Product Categories"
-                description="Organize storefront collections, category visibility, and merchandising order."
-                icon={FolderTree}
-                actionLabel="New category"
-              />
-            ),
+            element: <CategoriesPage />,
           },
           {
             path: "subcategories",
-            element: (
-              <ManagementPage
-                title="Product Subcategories"
-                description="Maintain nested catalogue groups and connect them to parent categories."
-                icon={Layers3}
-                actionLabel="New subcategory"
-              />
-            ),
+            element: <SubcategoriesPage />,
           },
         ],
       },
