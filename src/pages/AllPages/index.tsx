@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, type ReactNode } from "react";
 import {
   Search, Plus, MoreHorizontal, Eye, Edit3, Copy, Trash2,
   Globe, Lock, FileText, Filter, ChevronDown, CheckSquare,
@@ -33,7 +33,7 @@ const PAGES: Page[] = [
   { id: 12, title: "Size Guide", slug: "/size-guide", status: "published", template: "Default", lastModified: "2025-04-15", author: "Admin", views: 4310 },
 ];
 
-const STATUS_CONFIG: Record<Status, { label: string; bg: string; text: string; icon: JSX.Element }> = {
+const STATUS_CONFIG: Record<Status, { label: string; bg: string; text: string; icon: ReactNode }> = {
   published: { label: "Published", bg: "bg-emerald-50", text: "text-emerald-700", icon: <Globe size={11} /> },
   draft:     { label: "Draft",     bg: "bg-gray-100",   text: "text-gray-500",   icon: <FileText size={11} /> },
   private:   { label: "Private",   bg: "bg-amber-50",   text: "text-amber-700",  icon: <Lock size={11} /> },

@@ -5,7 +5,7 @@ import {
   LayoutDashboard, ShoppingCart, Package, Users, Settings,
   ChevronLeft, ChevronRight, ChevronDown, Store, LogOut,
   HelpCircle, Tag, Megaphone, Image, FileText, BarChart2,
-  Share2, Mail, CreditCard, Webhook, Search, Navigation,
+  Share2, Mail, CreditCard, Webhook, Search,
   Palette, Truck, Star,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";

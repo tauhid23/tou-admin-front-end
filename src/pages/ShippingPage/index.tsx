@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Truck, MapPin, Settings, Zap } from 'lucide-react';
+import { Truck, MapPin, Zap } from 'lucide-react';
 import { motion } from 'framer-motion';
 import {Link} from 'react-router-dom';
 
@@ -19,7 +19,7 @@ const ShippingPage: React.FC = () => {
 
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Shipping Zones */}
-          <Link to="/dashboard/shipping/zones">
+          <Link to="/shipping/zones">
             <motion.div whileHover={{ scale: 1.02 }} className="bg-white dark:bg-gray-900 rounded-3xl p-8 border border-gray-100 dark:border-gray-800 hover:shadow-xl cursor-pointer group">
               <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <MapPin className="w-8 h-8 text-blue-600" />
@@ -30,7 +30,7 @@ const ShippingPage: React.FC = () => {
           </Link>
 
           {/* Carriers */}
-          <Link to="/dashboard/shipping/carriers">
+          <Link to="/shipping/carriers">
             <motion.div whileHover={{ scale: 1.02 }} className="bg-white dark:bg-gray-900 rounded-3xl p-8 border border-gray-100 dark:border-gray-800 hover:shadow-xl cursor-pointer group">
               <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <Truck className="w-8 h-8 text-emerald-600" />
@@ -41,7 +41,7 @@ const ShippingPage: React.FC = () => {
           </Link>
 
           {/* Delivery Rules */}
-          <Link to="/dashboard/shipping/rules">
+          <Link to="/shipping/rules">
             <motion.div whileHover={{ scale: 1.02 }} className="bg-white dark:bg-gray-900 rounded-3xl p-8 border border-gray-100 dark:border-gray-800 hover:shadow-xl cursor-pointer group">
               <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                 <Zap className="w-8 h-8 text-purple-600" />

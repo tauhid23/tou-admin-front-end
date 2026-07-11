@@ -5,13 +5,11 @@ import Topbar from "./Topbar";
 
 export default function DashboardLayout() {
   return (
-    <div className="flex min-h-screen bg-neutral-50">
-      {/* Sidebar */}
+    <div className="flex min-h-screen bg-slate-50 text-slate-950">
       <Sidebar />
-      {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex min-w-0 flex-1 flex-col">
         <Topbar />
-        <main className="flex-1 p-6 md:p-8">
+        <main className="flex-1 p-4 md:p-6 lg:p-8">
           <Outlet />
         </main>
       </div>

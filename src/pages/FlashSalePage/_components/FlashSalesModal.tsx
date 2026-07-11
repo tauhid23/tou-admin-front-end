@@ -1,7 +1,7 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { X, Calendar, Zap } from 'lucide-react';
+import React, { useState } from 'react';
+import { X, Zap } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
 
 interface FlashSale {
@@ -40,29 +40,13 @@ const FlashSaleModal: React.FC<FlashSaleModalProps> = ({
   mode,
 }) => {
   const [formData, setFormData] = useState<FlashSale>({
-    title: '',
-    subtitle: '',
-    discount: '',
-    startTime: '',
-    endTime: '',
-    bannerColor: bannerColors[0],
+    title: initialData?.title ?? '',
+    subtitle: initialData?.subtitle ?? '',
+    discount: initialData?.discount ?? '',
+    startTime: initialData?.startTime ?? '',
+    endTime: initialData?.endTime ?? '',
+    bannerColor: initialData?.bannerColor ?? bannerColors[0],
   });
-
-  // Populate form when editing
-  useEffect(() => {
-    if (initialData && mode === 'edit') {
-      setFormData(initialData);
-    } else {
-      setFormData({
-        title: '',
-        subtitle: '',
-        discount: '',
-        startTime: '',
-        endTime: '',
-        bannerColor: bannerColors[0],
-      });
-    }
-  }, [initialData, mode]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
