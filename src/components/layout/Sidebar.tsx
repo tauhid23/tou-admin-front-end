@@ -1,16 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   LayoutDashboard, ShoppingCart, Package, Users, Settings,
   ChevronLeft, ChevronRight, ChevronDown, Store, LogOut,
-  HelpCircle, Tag, Megaphone, Image, FileText, BarChart2,
-  Share2, Mail, CreditCard, Webhook, Search, Navigation,
+  HelpCircle, Tag, Megaphone, FileText, BarChart2,
+  Share2, Mail, CreditCard, Webhook, Search,
   Palette, Truck, Star,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
-import { NavLink, useLocation } from "react-router-dom";
+import {useNavigate, NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useAdminCoupons, useAdminCustomers, useAdminOrders, useAdminPromotions, useLogout, useShippingSettings } from "@/lib/api/queries";
+import { useAuthStore } from "@/lib/stores/auth-store";
+import { useToast } from "@/lib/providers/ToastProvider";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -37,7 +40,7 @@ interface NavGroup {
 
 // ─── Navigation config ────────────────────────────────────────────────────────
 
-const navGroups: NavGroup[] = [
+const baseNavGroups: NavGroup[] = [
   {
     label: "Overview",
     items: [
@@ -64,13 +67,14 @@ const navGroups: NavGroup[] = [
         title: "Orders",
         path: "/orders",
         icon: ShoppingCart,
-        badge: "12",
         children: [
           { title: "All Orders", path: "/orders" },
-          { title: "Pending", path: "/orders/pending", badge: "5" },
+          { title: "Awaiting Review", path: "/orders/pending" },
           { title: "Processing", path: "/orders/processing" },
-          { title: "Completed", path: "/orders/completed" },
-          { title: "Returns & Refunds", path: "/orders/returns", badge: "3" },
+          { title: "Shipped", path: "/orders/shipped" },
+          { title: "Delivered", path: "/orders/delivered" },
+          { title: "Cancelled", path: "/orders/cancelled" },
+          { title: "Returns & Refunds", path: "/orders/returns" },
         ],
       },
       {
@@ -79,8 +83,11 @@ const navGroups: NavGroup[] = [
         icon: Users,
         children: [
           { title: "All Customers", path: "/customers" },
-          { title: "Customer Groups", path: "/customers/groups" },
-          { title: "Guest Checkouts", path: "/customers/guests" },
+          { title: "Repeat Customers", path: "/customers/repeat" },
+          { title: "High Value", path: "/customers/high-value" },
+          { title: "New This Month", path: "/customers/new" },
+          { title: "Inactive", path: "/customers/inactive" },
+          { title: "Blocked", path: "/customers/blocked" },
         ],
       },
       {
@@ -88,8 +95,9 @@ const navGroups: NavGroup[] = [
         path: "/shipping",
         icon: Truck,
         children: [
+          { title: "Overview", path: "/shipping" },
           { title: "Shipping Zones", path: "/shipping/zones" },
-          { title: "Carriers", path: "/shipping/carriers" },
+          { title: "Carrier Directory", path: "/shipping/carriers" },
           { title: "Delivery Rules", path: "/shipping/rules" },
         ],
       },
@@ -99,14 +107,14 @@ const navGroups: NavGroup[] = [
     label: "Marketing",
     items: [
       {
-        title: "Coupons & Discounts",
-        path: "/marketing/coupons",
+        title: "Pricing & Promotions",
+        path: "/marketing",
         icon: Tag,
         children: [
           { title: "All Coupons", path: "/marketing/coupons" },
           { title: "Create Coupon", path: "/marketing/coupons/new" },
           { title: "Discount Rules", path: "/marketing/discounts" },
-          { title: "Flash Sales", path: "/marketing/flash-sales", isNew: true },
+          { title: "Flash Sales", path: "/marketing/flash-sales" },
         ],
       },
       {
@@ -138,42 +146,46 @@ const navGroups: NavGroup[] = [
     items: [
       {
         title: "Appearance",
-        path: "/storefront/appearance",
+        path: "/appearance",
         icon: Palette,
         children: [
           { title: "Themes", path: "/storefront/themes" },
-          { title: "Banners & Sliders", path: "/storefront/banners" },
+          { title: "Banners & Sliders", path: "/appearance/banners-sliders" },
           { title: "Colour & Typography", path: "/storefront/branding" },
-          { title: "Logo & Favicon", path: "/storefront/logo" },
+          { title: "Logo & Favicon", path: "/appearance/logo-favicon" },
         ],
       },
       {
         title: "Pages & Content",
-        path: "/storefront/pages",
+        path: "/storefront/homepage",
         icon: FileText,
         children: [
-          { title: "All Pages", path: "/storefront/pages" },
+          // { title: "All Pages", path: "/storefront/pages" },
           { title: "Homepage Sections", path: "/storefront/homepage" },
           { title: "Blog Posts", path: "/storefront/blog" },
-          { title: "Announcements", path: "/storefront/announcements" },
-          { title: "Taglines & Copy", path: "/storefront/copy" },
+          { title: "About Us", path: "/storefront/about-us"},
+          { title: "Contact Page", path: "/storefront/contact", badge: "Inbox" },
+          // { title: "Announcements", path: "/storefront/announcements" },
+          { title: "Taglines", path: "/storefront/tagline" },
+          // { title: "Header Menu", path: "/storefront/header" },
+          { title: "Footer Links", path: "/storefront/footer" },
         ],
       },
-      {
-        title: "Navigation",
-        path: "/storefront/navigation",
-        icon: Navigation,
-        children: [
-          { title: "Header Menu", path: "/storefront/navigation/header" },
-          { title: "Footer Links", path: "/storefront/navigation/footer" },
-          { title: "Mega Menu", path: "/storefront/navigation/mega" },
-        ],
-      },
-      {
-        title: "Media Library",
-        path: "/storefront/media",
-        icon: Image,
-      },
+      // {
+      //   title: "Navigation",
+      //   path: "/storefront/navigation",
+      //   icon: Navigation,
+      //   children: [
+      //     { title: "Header Menu", path: "/storefront/navigation/header" },
+      //     { title: "Footer Links", path: "/storefront/navigation/footer" },
+      //     { title: "Mega Menu", path: "/storefront/navigation/mega" },
+      //   ],
+      // },
+      // {
+      //   title: "Media Library",
+      //   path: "/storefront/media",
+      //   icon: Image,
+      // },
     ],
   },
   {
@@ -326,6 +338,99 @@ export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
   const [openMenus, setOpenMenus] = useState<string[]>(["Products"]);
   const location = useLocation();
+  const navigate = useNavigate();
+  const logout = useLogout();
+  const ordersOverview = useAdminOrders("page=1&limit=10");
+  const customersOverview = useAdminCustomers("page=1&limit=10");
+  const shippingSettings = useShippingSettings();
+  const couponsOverview = useAdminCoupons("page=1&limit=10");
+  const automaticPromotions = useAdminPromotions("automatic");
+  const flashPromotions = useAdminPromotions("flash_sale");
+  const toast = useToast();
+  const user = useAuthStore((state) => state.user);
+  const clearSession = useAuthStore((state) => state.clearSession);
+  const navGroups = useMemo(() => {
+    const summary = ordersOverview.data?.summary;
+    const countBadge = (value?: number) =>
+      value && value > 0 ? (value > 99 ? "99+" : String(value)) : undefined;
+    const badges: Record<string, string | undefined> = {
+      "/orders": countBadge(summary?.totalOrders),
+      "/orders/pending": countBadge(summary?.pending),
+      "/orders/processing": countBadge(summary?.processing),
+      "/orders/shipped": countBadge(summary?.shipped),
+      "/orders/delivered": countBadge(summary?.delivered),
+      "/orders/cancelled": countBadge(summary?.cancelled),
+    };
+    const customerSummary = customersOverview.data?.summary;
+    const customerBadges: Record<string, string | undefined> = {
+      "/customers": countBadge(customerSummary?.totalCustomers),
+      "/customers/repeat": countBadge(customerSummary?.repeatCustomers),
+      "/customers/high-value": countBadge(customerSummary?.highValueCustomers),
+      "/customers/new": countBadge(customerSummary?.newThisMonth),
+      "/customers/inactive": countBadge(customerSummary?.inactiveCustomers),
+      "/customers/blocked": countBadge(customerSummary?.blockedCustomers),
+    };
+    const shippingBadges: Record<string, string | undefined> = {
+      "/shipping/zones": countBadge(shippingSettings.data?.zones.filter((zone) => zone.active).length),
+      "/shipping/carriers": countBadge(shippingSettings.data?.carriers.filter((carrier) => carrier.active).length),
+    };
+    const couponSummary = couponsOverview.data?.summary;
+    const automaticSummary = automaticPromotions.data?.summary;
+    const flashSummary = flashPromotions.data?.summary;
+    const promotionBadges: Record<string, string | undefined> = {
+      "/marketing/coupons": countBadge(couponSummary?.totalCoupons),
+      "/marketing/discounts": countBadge(automaticSummary?.active),
+      "/marketing/flash-sales": countBadge(flashSummary?.active),
+    };
+
+    return baseNavGroups.map((group) => ({
+      ...group,
+      items: group.items.map((item) =>
+        item.path === "/orders"
+          ? {
+              ...item,
+              badge: countBadge(summary?.pending),
+              children: item.children?.map((child) => ({ ...child, badge: badges[child.path] })),
+            }
+          : item.path === "/customers"
+            ? {
+                ...item,
+                badge: countBadge(customerSummary?.newThisMonth),
+                children: item.children?.map((child) => ({ ...child, badge: customerBadges[child.path] })),
+              }
+            : item.path === "/shipping"
+              ? {
+                  ...item,
+                  children: item.children?.map((child) => ({ ...child, badge: shippingBadges[child.path] })),
+                }
+              : item.path === "/marketing"
+                ? {
+                    ...item,
+                    badge: countBadge((couponSummary?.active ?? 0) + (automaticSummary?.active ?? 0) + (flashSummary?.active ?? 0)),
+                    children: item.children?.map((child) => ({ ...child, badge: promotionBadges[child.path] })),
+                  }
+          : item
+      ),
+    }));
+  }, [automaticPromotions.data?.summary, couponsOverview.data?.summary, customersOverview.data?.summary, flashPromotions.data?.summary, ordersOverview.data?.summary, shippingSettings.data]);
+  const initials =
+    user?.name
+      ?.split(" ")
+      .map((part) => part[0])
+      .join("")
+      .slice(0, 2)
+      .toUpperCase() || "AD";
+
+  const handleLogout = async () => {
+    try {
+      await logout.mutateAsync();
+      toast.success("Signed out");
+    } catch {
+      clearSession();
+    } finally {
+      navigate("/login", { replace: true });
+    }
+  };
 
   const toggleMenu = (title: string) =>
     setOpenMenus((prev) =>
@@ -340,7 +445,7 @@ export default function Sidebar() {
     <motion.aside
       animate={{ width: collapsed ? 78 : 282 }}
       transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
-      className="relative h-screen flex flex-col overflow-hidden border-r border-neutral-100 bg-white shadow-xl"
+      className="sticky top-0 z-50 flex h-screen shrink-0 flex-col overflow-hidden border-r border-neutral-100 bg-white shadow-xl"
     >
       {/* ── Logo ─────────────────────────────────── */}
       <div
@@ -403,13 +508,19 @@ export default function Sidebar() {
             <div className="space-y-1">
               {group.items.map((item) => {
                 const itemActive = isActive(item.path) || hasActiveChild(item.children);
-                const isOpen = openMenus.includes(item.title);
+                const isOpen = openMenus.includes(item.title) || Boolean(hasActiveChild(item.children));
 
                 return (
                   <div key={item.title}>
                     <Tooltip label={item.title} show={collapsed}>
                       <div
-                        onClick={() => item.children && toggleMenu(item.title)}
+                        onClick={() => {
+  if (item.children) {
+    toggleMenu(item.title);
+  } else {
+    navigate(item.path);
+  }
+}}
                         className={cn(
                           "group relative flex items-center justify-between px-3 py-3 rounded-2xl cursor-pointer transition-all duration-200",
                           itemActive
@@ -527,18 +638,26 @@ export default function Sidebar() {
         >
           <Tooltip label="Ahmad Rafi · Admin" show={collapsed}>
             <div className="w-9 h-9 rounded-2xl bg-gradient-to-br from-neutral-800 to-black flex items-center justify-center text-white text-sm font-bold shadow-md">
-              AR
+              {initials}
             </div>
           </Tooltip>
 
           {!collapsed && (
             <>
               <div className="flex-1 min-w-0">
-                <p className="font-semibold text-neutral-900">Tauhid Islam</p>
-                <p className="text-xs text-neutral-500">Store Admin</p>
+                <p className="truncate font-semibold text-neutral-900">{user?.name ?? "Admin"}</p>
+                <p className="truncate text-xs capitalize text-neutral-500">
+                  {(user?.role ?? "admin").replace(/_/g, " ")}
+                </p>
               </div>
-              <button className="text-neutral-400 hover:text-neutral-600 transition-colors p-1.5 hover:bg-neutral-100 rounded-xl">
-                <LogOut className="w-4 h-4" />
+              <button
+                type="button"
+                onClick={handleLogout}
+                disabled={logout.isPending}
+                className="rounded-xl p-1.5 text-neutral-400 transition-colors hover:bg-neutral-100 hover:text-neutral-600 disabled:cursor-not-allowed disabled:opacity-60"
+                aria-label="Sign out"
+              >
+                <LogOut className="h-4 w-4" />
               </button>
             </>
           )}
