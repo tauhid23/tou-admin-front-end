@@ -1,111 +1,29 @@
-'use client';
+import { useState } from "react";
+import { Banknote, CheckCircle2, Clock3, Loader2, PackageCheck, ShieldCheck, Truck, Zap } from "lucide-react";
+import { useToast } from "@/lib/providers/ToastProvider";
+import { useSaveDeliveryRules, useShippingSettings, type DeliveryRules } from "@/lib/api/queries";
 
-import React, { useState } from 'react';
-import { Plus, Edit2, Trash2, Zap } from 'lucide-react';
-import { motion } from 'framer-motion';
-
-interface DeliveryRule {
-  id: number;
-  title: string;
-  type: 'Free Shipping' | 'Express Delivery' | 'Cut-off Time' | 'Minimum Order';
-  condition: string;
-  value: string;
-  status: 'Active' | 'Inactive';
+export default function DeliveryRulesPage() {
+  const { data, isLoading, isError, refetch } = useShippingSettings();
+  return <div className="mx-auto max-w-[1200px] space-y-6"><header><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500"><Zap className="h-4 w-4" />Shipping configuration</div><h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Delivery rules</h1><p className="mt-2 text-sm text-slate-500">Set the commercial and operational rules enforced during checkout.</p></header>{isLoading ? <div className="h-72 animate-pulse rounded-2xl bg-slate-200" /> : isError || !data ? <div className="rounded-2xl border border-rose-200 bg-white p-8 text-center"><p className="font-bold">Delivery rules could not be loaded</p><button type="button" onClick={() => refetch()} className="mt-4 action-primary">Try again</button></div> : <RulesForm key={data.updatedAt ?? data._id} initial={data.rules} currency={data.currency} />}</div>;
 }
 
-const DeliveryRulesPage: React.FC = () => {
-  const [rules, setRules] = useState<DeliveryRule[]>([
-    {
-      id: 1,
-      title: "Free Shipping Over",
-      type: "Free Shipping",
-      condition: "Order amount greater than",
-      value: "৳1500",
-      status: "Active"
-    },
-    {
-      id: 2,
-      title: "Express Delivery",
-      type: "Express Delivery",
-      condition: "Additional charge for",
-      value: "Same day delivery",
-      status: "Active"
-    },
-    {
-      id: 3,
-      title: "Order Cut-off Time",
-      type: "Cut-off Time",
-      condition: "Orders placed before",
-      value: "3:00 PM",
-      status: "Active"
-    },
-    {
-      id: 4,
-      title: "Minimum Order Value",
-      type: "Minimum Order",
-      condition: "Minimum order amount",
-      value: "৳500",
-      status: "Active"
-    },
-  ]);
+function RulesForm({ initial, currency }: { initial: DeliveryRules; currency: string }) {
+  const toast = useToast();
+  const saveRules = useSaveDeliveryRules();
+  const [rules, setRules] = useState(initial);
+  const changed = JSON.stringify(rules) !== JSON.stringify(initial);
+  async function save() { try { await saveRules.mutateAsync(rules); toast.success("Delivery rules saved", "New checkout sessions will use these settings."); } catch (error) { toast.error("Rules were not saved", error instanceof Error ? error.message : "Please try again."); } }
+  return <div className="grid gap-5 lg:grid-cols-[minmax(0,1fr)_340px]"><section className="rounded-2xl border border-slate-200 bg-white shadow-sm"><div className="border-b border-slate-100 p-5"><h2 className="font-bold text-slate-950">Checkout and fulfilment</h2><p className="mt-1 text-xs text-slate-500">All monetary values use {currency}.</p></div><div className="divide-y divide-slate-100">
+    <RuleRow icon={Banknote} title="Free shipping" description="Remove the zone charge when an order reaches the threshold."><Toggle checked={rules.freeShippingEnabled} onChange={(value) => setRules({ ...rules, freeShippingEnabled: value })} />{rules.freeShippingEnabled && <label className="mt-3 block"><span className="mb-1.5 block text-xs font-semibold text-slate-600">Order threshold ({currency})</span><input type="number" min="0.01" step="0.01" value={rules.freeShippingThreshold} onChange={(event) => setRules({ ...rules, freeShippingThreshold: Number(event.target.value) })} className="field" /></label>}</RuleRow>
+    <RuleRow icon={PackageCheck} title="Minimum order value" description="Reject checkout totals below this amount. Use zero for no minimum."><label><span className="mb-1.5 block text-xs font-semibold text-slate-600">Minimum ({currency})</span><input type="number" min="0" step="0.01" value={rules.minimumOrder} onChange={(event) => setRules({ ...rules, minimumOrder: Number(event.target.value) })} className="field" /></label></RuleRow>
+    <RuleRow icon={Clock3} title="Daily order cut-off" description="Operational reference for same-day processing and dispatch planning."><label><span className="mb-1.5 block text-xs font-semibold text-slate-600">Cut-off time</span><input type="time" value={rules.cutoffTime} onChange={(event) => setRules({ ...rules, cutoffTime: event.target.value })} className="field" /></label></RuleRow>
+    <RuleRow icon={Truck} title="Processing time" description="Standard warehouse preparation time before carrier handoff."><label><span className="mb-1.5 block text-xs font-semibold text-slate-600">Business days</span><input type="number" min="0" max="30" value={rules.processingDays} onChange={(event) => setRules({ ...rules, processingDays: Number(event.target.value) })} className="field" /></label></RuleRow>
+    <RuleRow icon={ShieldCheck} title="Cash on delivery" description="Allow customers to place orders and pay when delivery is completed."><Toggle checked={rules.cashOnDeliveryEnabled} onChange={(value) => setRules({ ...rules, cashOnDeliveryEnabled: value })} /></RuleRow>
+  </div><footer className="flex items-center justify-between border-t border-slate-100 p-5"><p className="text-xs text-slate-400">Changes do not alter existing orders.</p><button type="button" onClick={save} disabled={!changed || saveRules.isPending} className="action-primary">{saveRules.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}Save rules</button></footer></section>
+  <aside className="space-y-4"><div className="rounded-2xl bg-slate-950 p-6 text-white shadow-xl shadow-slate-950/10"><Zap className="h-6 w-6 text-slate-400" /><h2 className="mt-5 text-lg font-bold">Server enforced</h2><p className="mt-2 text-sm leading-6 text-slate-400">Minimum order, free shipping, active zones, and payment availability are recalculated by the API. Checkout values cannot override them.</p></div><div className="rounded-2xl border border-slate-200 bg-white p-5 text-sm"><h3 className="font-bold text-slate-950">Current policy</h3><dl className="mt-4 space-y-3"><Summary label="Free shipping" value={rules.freeShippingEnabled ? `From ${currency} ${rules.freeShippingThreshold}` : "Off"} /><Summary label="Minimum order" value={rules.minimumOrder ? `${currency} ${rules.minimumOrder}` : "None"} /><Summary label="Cut-off" value={rules.cutoffTime} /><Summary label="Processing" value={`${rules.processingDays} day(s)`} /><Summary label="COD" value={rules.cashOnDeliveryEnabled ? "Enabled" : "Disabled"} /></dl></div></aside></div>;
+}
 
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-              <Zap className="w-9 h-9" />
-              Delivery Rules
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400">Configure smart delivery conditions and promotions</p>
-          </div>
-          <button className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl hover:bg-indigo-700">
-            <Plus className="w-5 h-5" /> Add New Rule
-          </button>
-        </div>
-
-        <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-100 dark:border-gray-800">
-          <div className="grid grid-cols-1 gap-4">
-            {rules.map((rule) => (
-              <motion.div
-                key={rule.id}
-                className="border border-gray-200 dark:border-gray-700 rounded-2xl p-6 hover:shadow-md transition-all group"
-              >
-                <div className="flex items-start justify-between">
-                  <div>
-                    <div className="flex items-center gap-3">
-                      <span className="px-4 py-1.5 text-xs font-medium bg-purple-100 dark:bg-purple-900/30 text-purple-700 rounded-full">
-                        {rule.type}
-                      </span>
-                      <h3 className="font-semibold text-lg">{rule.title}</h3>
-                    </div>
-                    <p className="text-gray-600 dark:text-gray-400 mt-2">
-                      {rule.condition} <span className="font-medium text-gray-900 dark:text-white">{rule.value}</span>
-                    </p>
-                  </div>
-
-                  <div className="flex items-center gap-4">
-                    <span className={`px-4 py-1 rounded-full text-sm font-medium ${rule.status === 'Active' ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-500'}`}>
-                      {rule.status}
-                    </span>
-                    <div className="flex gap-2">
-                      <button className="p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl">
-                        <Edit2 className="w-4 h-4" />
-                      </button>
-                      <button className="p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-red-500">
-                        <Trash2 className="w-4 h-4" />
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              </motion.div>
-            ))}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default DeliveryRulesPage;
+function RuleRow({ icon: Icon, title, description, children }: { icon: typeof Zap; title: string; description: string; children: React.ReactNode }) { return <div className="grid gap-4 p-5 sm:grid-cols-[minmax(0,1fr)_220px] sm:items-start"><div className="flex gap-3"><span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-700"><Icon className="h-5 w-5" /></span><div><h3 className="text-sm font-bold text-slate-900">{title}</h3><p className="mt-1 text-xs leading-5 text-slate-500">{description}</p></div></div><div>{children}</div></div>; }
+function Toggle({ checked, onChange }: { checked: boolean; onChange: (value: boolean) => void }) { return <button type="button" onClick={() => onChange(!checked)} className={`relative h-7 w-12 rounded-full transition ${checked ? "bg-slate-950" : "bg-slate-200"}`} aria-pressed={checked}><span className={`absolute top-1 h-5 w-5 rounded-full bg-white shadow transition ${checked ? "left-6" : "left-1"}`} /></button>; }
+function Summary({ label, value }: { label: string; value: string }) { return <div className="flex justify-between gap-3"><dt className="text-slate-500">{label}</dt><dd className="font-semibold text-slate-900">{value}</dd></div>; }

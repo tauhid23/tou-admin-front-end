@@ -21,7 +21,7 @@ const ForgotPasswordPage = () => {
         animate={{ opacity: 1, y: 0 }}
         className="w-full max-w-md"
       >
-        <Link to="/auth/signin" className="inline-flex items-center text-gray-400 hover:text-white mb-8">
+        <Link to="/login" className="inline-flex items-center text-gray-400 hover:text-white mb-8">
           <ArrowLeft className="mr-2" /> Back to Sign In
         </Link>
 

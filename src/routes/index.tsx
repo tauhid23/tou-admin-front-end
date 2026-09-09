@@ -6,11 +6,9 @@ import {
   Bell,
   Blocks,
   BookOpenText,
-  Boxes,
   Brush,
   ChartNoAxesCombined,
   CircleDollarSign,
-  ClipboardList,
   Code2,
   FileJson,
   FileSearch,
@@ -19,7 +17,6 @@ import {
   Gift,
   Globe2,
   HelpCircle,
-  Home,
   Image,
   Mail,
   Map,
@@ -35,7 +32,6 @@ import {
   ShieldCheck,
   ShoppingBag,
   Tags,
-  TicketPercent,
   Users,
   Webhook,
 } from "lucide-react";
@@ -43,6 +39,7 @@ import {
 /* Layout */
 import DashboardPage from "@/pages/dashboard";
 import DashboardLayout from "@/components/layout/DashboardLayout";
+import ProtectedRoute from "@/components/auth/ProtectedRoute";
 import ProductsPage from "@/pages/allProducts";
 import AddProduct from "@/pages/addNewProduct";
 import InventoryPage from "@/pages/Inventory";
@@ -52,7 +49,6 @@ import ReviewsPage from "@/pages/Reviews";
 import AllOrdersPage from "@/pages/allOrders";
 import ReturnsAndRefundsPage from "@/pages/returnAndRefund";
 import AllCustomersPage from "@/pages/allCustomer";
-import GuestCheckoutsPage from "@/pages/guestCheckouts";
 import ShippingPage from "@/pages/ShippingPage";
 import ShippingZonesPage from "@/pages/ShippingZonesPage";
 import CarriersPage from "@/pages/CarriesPage";
@@ -60,6 +56,9 @@ import DeliveryRulesPage from "@/pages/DeliveryRulesPage";
 import AllCouponsPage from "@/pages/AllCouponPage";
 import DiscountRulesPage from "@/pages/DiscountRulesPage";
 import SignInPage from "@/pages/Auth/SigninPage";
+import ForgotPasswordPage from "@/pages/Auth/ForgotPasswordPage";
+import ResetPasswordPage from "@/pages/Auth/ResetPasswordPage";
+import VerifyOTPPage from "@/pages/Auth/VerifyOtpPage";
 import LogoFavicon from "@/pages/LogoFavicon";
 import BannersSlidersTwo from "@/pages/BannerTwo";
 import AllPages from "@/pages/AllPages";
@@ -70,6 +69,8 @@ import HeaderMenu from "@/pages/HeaderMenu";
 import FooterManager from "@/pages/Footer";
 import FlashSalesPage from "@/pages/FlashSalePage";
 import ManagementPage from "@/pages/_shared/ManagementPage";
+import HomepageSectionsPage from "@/pages/HomepageSections";
+import ContactPageManager from "@/pages/ContactPage";
 
 /* Pages */
 // import Products from "@/pages/products/Products";
@@ -89,14 +90,33 @@ import ManagementPage from "@/pages/_shared/ManagementPage";
 
 export const router = createBrowserRouter([
   {
-    path: "/",
-    element: <DashboardLayout />,
-    // errorElement: <NotFound />,
+    path: "/login",
+    element: <SignInPage />,
+  },
+  {
+    path: "/forgot-password",
+    element: <ForgotPasswordPage />,
+  },
+  {
+    path: "/verify-otp",
+    element: <VerifyOTPPage />,
+  },
+  {
+    path: "/reset-password",
+    element: <ResetPasswordPage />,
+  },
+  {
+    element: <ProtectedRoute />,
     children: [
       {
-        index: true,
-        element: <DashboardPage />,
-      },
+        path: "/",
+        element: <DashboardLayout />,
+        // errorElement: <NotFound />,
+        children: [
+          {
+            index: true,
+            element: <DashboardPage />,
+          },
 
       /* Products */
       {
@@ -108,6 +128,10 @@ export const router = createBrowserRouter([
           },
           {
             path: "new",
+            element: <AddProduct />,
+          },
+          {
+            path: ":id/edit",
             element: <AddProduct />,
           },
           {
@@ -144,36 +168,27 @@ export const router = createBrowserRouter([
           },
           {
             path: "pending",
-            element: (
-              <ManagementPage
-                title="Pending Orders"
-                description="Review newly placed orders before fulfilment begins."
-                icon={ClipboardList}
-                actionLabel="Create order"
-              />
-            ),
+            element: <AllOrdersPage initialStatus="pending" />,
           },
           {
             path: "processing",
-            element: (
-              <ManagementPage
-                title="Processing Orders"
-                description="Track packed, assigned, and in-progress fulfilment work."
-                icon={Boxes}
-                actionLabel="Add shipment"
-              />
-            ),
+            element: <AllOrdersPage initialStatus="processing" />,
+          },
+          {
+            path: "shipped",
+            element: <AllOrdersPage initialStatus="shipped" />,
+          },
+          {
+            path: "delivered",
+            element: <AllOrdersPage initialStatus="delivered" />,
           },
           {
             path: "completed",
-            element: (
-              <ManagementPage
-                title="Completed Orders"
-                description="Audit fulfilled orders, receipts, and delivery confirmations."
-                icon={ShieldCheck}
-                actionLabel="Export report"
-              />
-            ),
+            element: <AllOrdersPage initialStatus="delivered" />,
+          },
+          {
+            path: "cancelled",
+            element: <AllOrdersPage initialStatus="cancelled" />,
           },
         ],
       },
@@ -181,22 +196,18 @@ export const router = createBrowserRouter([
       /* Customers */
       {
         path: "customers",
-        element: <AllCustomersPage />,
+        children: [
+          { index: true, element: <AllCustomersPage /> },
+          { path: "repeat", element: <AllCustomersPage initialSegment="repeat" /> },
+          { path: "high-value", element: <AllCustomersPage initialSegment="high-value" /> },
+          { path: "new", element: <AllCustomersPage initialSegment="new" /> },
+          { path: "inactive", element: <AllCustomersPage initialSegment="inactive" /> },
+          { path: "blocked", element: <AllCustomersPage initialSegment="blocked" /> },
+        ],
       },
       {
         path: "guests",
-        element: <GuestCheckoutsPage />,
-      },
-      {
-        path: "customers/groups",
-        element: (
-          <ManagementPage
-            title="Customer Groups"
-            description="Segment buyers for pricing rules, campaigns, and loyalty experiences."
-            icon={Users}
-            actionLabel="New group"
-          />
-        ),
+        element: <AllCustomersPage />,
       },
 
       /* Shipping Management */
@@ -230,14 +241,7 @@ export const router = createBrowserRouter([
           { path: "coupons", element: <AllCouponsPage /> },
           {
             path: "coupons/new",
-            element: (
-              <ManagementPage
-                title="Create Coupon"
-                description="Build a coupon with usage limits, eligibility rules, and scheduled publishing."
-                icon={TicketPercent}
-                actionLabel="Save coupon"
-              />
-            ),
+            element: <AllCouponsPage createOnLoad />,
           },
           { path: "discounts", element: <DiscountRulesPage /> },
           { path: "flash-sales", element: <FlashSalesPage /> },
@@ -363,6 +367,7 @@ export const router = createBrowserRouter([
           { path: "/storefront/pages", element: <AllPages /> },
           { path: "/storefront/blog", element: <BlogManager /> },
           { path: "/storefront/about-us", element: <AboutUsEditor /> },
+          { path: "contact", element: <ContactPageManager /> },
           { path: "/storefront/tagline", element: <TaglinesManager /> },
           { path: "/storefront/header", element: <HeaderMenu /> },
           { path: "/storefront/footer", element: <FooterManager /> },
@@ -390,14 +395,7 @@ export const router = createBrowserRouter([
           },
           {
             path: "/storefront/homepage",
-            element: (
-              <ManagementPage
-                title="Homepage Sections"
-                description="Arrange hero modules, collections, editorial blocks, and campaign sections."
-                icon={Home}
-                actionLabel="Add section"
-              />
-            ),
+            element: <HomepageSectionsPage />,
           },
           {
             path: "/storefront/media",
@@ -790,16 +788,13 @@ export const router = createBrowserRouter([
           />
         ),
       },
-      {
-        path: "/login",
-        element: <SignInPage />,
-      },
-
       //   /* Settings */
       //   {
       //     path: "settings",
       //     element: <Settings />,
       //   },
+        ],
+      },
     ],
   },
 

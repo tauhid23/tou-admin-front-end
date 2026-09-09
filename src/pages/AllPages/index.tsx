@@ -4,6 +4,7 @@ import {
   Globe, Lock, FileText, Filter, ChevronDown, CheckSquare,
   Square, ArrowUpDown, ExternalLink, Clock, Check, LayoutTemplate
 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 
 type Status = "published" | "draft" | "private" | "scheduled";
 interface Page {
@@ -43,6 +44,7 @@ const STATUS_CONFIG: Record<Status, { label: string; bg: string; text: string; i
 type SortKey = "title" | "lastModified" | "views" | "status";
 
 export default function AllPages() {
+  const navigate = useNavigate();
   const [search, setSearch] = useState("");
   const [filterStatus, setFilterStatus] = useState<Status | "all">("all");
   const [selected, setSelected] = useState<Set<number>>(new Set());
@@ -241,7 +243,11 @@ export default function AllPages() {
                       </button>
                       {openMenu === page.id && (
                         <div className="absolute right-4 top-10 z-20 bg-white border border-gray-200 rounded-xl shadow-xl py-1.5 w-44">
-                          <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5">
+                          <button
+                            onClick={() => page.slug === "/contact" && navigate("/storefront/contact")}
+                            disabled={page.slug !== "/contact"}
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5 disabled:cursor-not-allowed disabled:opacity-45"
+                          >
                             <Edit3 size={13} className="text-gray-400" /> Edit page
                           </button>
                           <button className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-50 flex items-center gap-2.5">

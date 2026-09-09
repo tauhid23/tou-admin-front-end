@@ -1,78 +1,39 @@
-'use client';
+import { ArrowRight, Banknote, Clock3, MapPin, PackageCheck, Settings2, Truck, Zap } from "lucide-react";
+import { Link } from "react-router-dom";
+import { useShippingSettings } from "@/lib/api/queries";
 
-import React from 'react';
-import { Truck, MapPin, Zap } from 'lucide-react';
-import { motion } from 'framer-motion';
-import {Link} from 'react-router-dom';
+const money = (value: number, currency = "USD") => new Intl.NumberFormat("en-US", { style: "currency", currency }).format(value);
 
-const ShippingPage: React.FC = () => {
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="mb-8">
-          <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-            <Truck className="w-9 h-9" />
-            Shipping Management
-          </h1>
-          <p className="text-gray-500 dark:text-gray-400 mt-1">Configure how your products are delivered to customers</p>
-        </div>
+export default function ShippingPage() {
+  const { data, isLoading, isError, refetch } = useShippingSettings();
+  const activeZones = data?.zones.filter((zone) => zone.active).length ?? 0;
+  const activeCarriers = data?.carriers.filter((carrier) => carrier.active).length ?? 0;
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {/* Shipping Zones */}
-          <Link to="/shipping/zones">
-            <motion.div whileHover={{ scale: 1.02 }} className="bg-white dark:bg-gray-900 rounded-3xl p-8 border border-gray-100 dark:border-gray-800 hover:shadow-xl cursor-pointer group">
-              <div className="w-14 h-14 bg-blue-100 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <MapPin className="w-8 h-8 text-blue-600" />
-              </div>
-              <h3 className="text-2xl font-semibold mb-2">Shipping Zones</h3>
-              <p className="text-gray-500 dark:text-gray-400">Define regions and zone-based pricing</p>
-            </motion.div>
-          </Link>
+  return <div className="mx-auto max-w-[1500px] space-y-6">
+    <header><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500"><Truck className="h-4 w-4" />Operations</div><h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Shipping management</h1><p className="mt-2 max-w-2xl text-sm text-slate-500">Control delivery coverage, carrier partners, customer charges, and fulfilment rules.</p></header>
 
-          {/* Carriers */}
-          <Link to="/shipping/carriers">
-            <motion.div whileHover={{ scale: 1.02 }} className="bg-white dark:bg-gray-900 rounded-3xl p-8 border border-gray-100 dark:border-gray-800 hover:shadow-xl cursor-pointer group">
-              <div className="w-14 h-14 bg-emerald-100 dark:bg-emerald-900/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Truck className="w-8 h-8 text-emerald-600" />
-              </div>
-              <h3 className="text-2xl font-semibold mb-2">Carriers</h3>
-              <p className="text-gray-500 dark:text-gray-400">Manage shipping partners & rates</p>
-            </motion.div>
-          </Link>
+    {isLoading ? <div className="h-32 animate-pulse rounded-2xl bg-slate-200" /> : isError ? <div className="rounded-2xl border border-rose-200 bg-white p-6"><p className="font-bold text-slate-950">Shipping configuration could not be loaded</p><button type="button" onClick={() => refetch()} className="mt-3 action-primary">Try again</button></div> : <>
+      <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
+        <Stat label="Active zones" value={String(activeZones)} icon={MapPin} />
+        <Stat label="Active carriers" value={String(activeCarriers)} icon={Truck} />
+        <Stat label="Minimum order" value={money(data?.rules.minimumOrder ?? 0, data?.currency)} icon={PackageCheck} />
+        <Stat label="Free shipping" value={data?.rules.freeShippingEnabled ? `From ${money(data.rules.freeShippingThreshold, data.currency)}` : "Disabled"} icon={Banknote} />
+      </section>
 
-          {/* Delivery Rules */}
-          <Link to="/shipping/rules">
-            <motion.div whileHover={{ scale: 1.02 }} className="bg-white dark:bg-gray-900 rounded-3xl p-8 border border-gray-100 dark:border-gray-800 hover:shadow-xl cursor-pointer group">
-              <div className="w-14 h-14 bg-purple-100 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Zap className="w-8 h-8 text-purple-600" />
-              </div>
-              <h3 className="text-2xl font-semibold mb-2">Delivery Rules</h3>
-              <p className="text-gray-500 dark:text-gray-400">Free shipping, express, cut-off times</p>
-            </motion.div>
-          </Link>
+      <section className="grid gap-4 lg:grid-cols-3">
+        <NavigationCard to="/shipping/zones" icon={MapPin} eyebrow={`${activeZones} active`} title="Shipping zones" description="Set customer-facing delivery regions, charges, and delivery estimates." />
+        <NavigationCard to="/shipping/carriers" icon={Truck} eyebrow={`${activeCarriers} active`} title="Carrier directory" description="Maintain courier contacts, service areas, and tracking links." />
+        <NavigationCard to="/shipping/rules" icon={Zap} eyebrow="Checkout rules" title="Delivery rules" description="Configure free shipping, minimum orders, cut-off time, and COD." />
+      </section>
 
-          {/* Quick Stats */}
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-8 border border-gray-100 dark:border-gray-800">
-            <h3 className="text-lg font-semibold mb-6">Quick Overview</h3>
-            <div className="space-y-6">
-              <div className="flex justify-between">
-                <span className="text-gray-500">Active Zones</span>
-                <span className="font-semibold">6</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Active Carriers</span>
-                <span className="font-semibold">4</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-gray-500">Free Shipping Orders</span>
-                <span className="font-semibold text-emerald-600">87</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
+      <section className="grid gap-4 lg:grid-cols-[1.2fr_.8fr]">
+        <div className="rounded-2xl bg-slate-950 p-6 text-white shadow-xl shadow-slate-950/10"><div className="flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.15em] text-slate-400"><Settings2 className="h-4 w-4" />Live checkout configuration</div><h2 className="mt-4 text-xl font-bold">Your storefront uses these settings automatically</h2><p className="mt-2 max-w-xl text-sm leading-6 text-slate-400">Zone prices and delivery rules are validated again by the server when an order is placed, protecting totals from browser-side changes.</p><div className="mt-6 grid gap-3 sm:grid-cols-2">{data?.zones.filter((zone) => zone.active).map((zone) => <div key={zone.code} className="rounded-xl border border-white/10 bg-white/5 p-4"><div className="flex items-center justify-between gap-3"><p className="font-semibold">{zone.name}</p><p className="font-bold">{money(zone.rate, data.currency)}</p></div><p className="mt-2 flex items-center gap-1.5 text-xs text-slate-400"><Clock3 className="h-3.5 w-3.5" />{zone.minDeliveryDays}–{zone.maxDeliveryDays} business days</p></div>)}</div></div>
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><h2 className="font-bold text-slate-950">Operational status</h2><div className="mt-5 space-y-4 text-sm"><Status label="Cash on delivery" active={Boolean(data?.rules.cashOnDeliveryEnabled)} /><Status label="Free-shipping rule" active={Boolean(data?.rules.freeShippingEnabled)} /><div className="flex items-center justify-between"><span className="text-slate-500">Order cut-off</span><span className="font-semibold text-slate-900">{data?.rules.cutoffTime}</span></div><div className="flex items-center justify-between"><span className="text-slate-500">Processing time</span><span className="font-semibold text-slate-900">{data?.rules.processingDays} day(s)</span></div></div>{data?.updatedAt && <p className="mt-6 border-t border-slate-100 pt-4 text-xs text-slate-400">Last saved {new Date(data.updatedAt).toLocaleString()}</p>}</div>
+      </section>
+    </>}
+  </div>;
+}
 
-export default ShippingPage;
+function Stat({ label, value, icon: Icon }: { label: string; value: string; icon: typeof Truck }) { return <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-white"><Icon className="h-5 w-5" /></span><span><span className="block text-xs text-slate-500">{label}</span><span className="mt-1 block text-lg font-bold text-slate-950">{value}</span></span></div>; }
+function NavigationCard({ to, icon: Icon, eyebrow, title, description }: { to: string; icon: typeof Truck; eyebrow: string; title: string; description: string }) { return <Link to={to} className="group rounded-2xl border border-slate-200 bg-white p-6 shadow-sm transition hover:-translate-y-0.5 hover:border-slate-300 hover:shadow-lg"><div className="flex items-center justify-between"><span className="flex h-11 w-11 items-center justify-center rounded-xl bg-slate-100 text-slate-700 group-hover:bg-slate-950 group-hover:text-white"><Icon className="h-5 w-5" /></span><ArrowRight className="h-5 w-5 text-slate-300 transition group-hover:translate-x-1 group-hover:text-slate-700" /></div><p className="mt-6 text-xs font-bold uppercase tracking-wider text-slate-400">{eyebrow}</p><h2 className="mt-2 text-lg font-bold text-slate-950">{title}</h2><p className="mt-2 text-sm leading-6 text-slate-500">{description}</p></Link>; }
+function Status({ label, active }: { label: string; active: boolean }) { return <div className="flex items-center justify-between"><span className="text-slate-500">{label}</span><span className={active ? "status-active" : "rounded-full bg-slate-100 px-2.5 py-1 text-xs font-semibold text-slate-500"}>{active ? "Active" : "Disabled"}</span></div>; }

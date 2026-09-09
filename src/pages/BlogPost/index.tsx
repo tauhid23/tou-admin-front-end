@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Plus, Edit3, Trash2, Eye, Calendar, User, Check, X } from "lucide-react";
+import { Plus, Edit3, Trash2, Eye, Calendar, User, Check, X, Upload } from "lucide-react";
 
 interface BlogPost {
   id: number;
@@ -69,6 +69,12 @@ export default function BlogManager() {
     setPosts(prev => prev.map(p => 
       p.id === id ? { ...p, status: p.status === "published" ? "draft" : "published" } : p
     ));
+  };
+
+  const uploadPostImage = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file || !editingPost) return;
+    setEditingPost({ ...editingPost, image: URL.createObjectURL(file) });
   };
 
   return (
@@ -152,12 +158,18 @@ export default function BlogManager() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium mb-2">Featured Image URL</label>
-                <input
-                  value={editingPost.image}
-                  onChange={(e) => setEditingPost({ ...editingPost, image: e.target.value })}
-                  className="w-full border border-gray-200 rounded-2xl px-5 py-3"
-                />
+                <label className="block text-sm font-medium mb-2">Featured Image File</label>
+                <div className="grid gap-4 rounded-3xl border-2 border-dashed border-gray-200 bg-gray-50 p-4 sm:grid-cols-[180px_minmax(0,1fr)] sm:items-center">
+                  <img src={editingPost.image} alt="" className="h-32 w-full rounded-2xl object-cover" />
+                  <div>
+                    <label className="inline-flex cursor-pointer items-center gap-2 rounded-2xl bg-black px-5 py-3 text-sm font-semibold text-white hover:bg-gray-800">
+                      <Upload size={18} />
+                      Choose image
+                      <input type="file" accept="image/*" className="hidden" onChange={uploadPostImage} />
+                    </label>
+                    <p className="mt-2 text-xs text-gray-500">Used as the blog card and article hero image.</p>
+                  </div>
+                </div>
               </div>
 
               <div>

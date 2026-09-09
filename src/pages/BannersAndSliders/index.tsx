@@ -114,6 +114,12 @@ export default function BannersSliders() {
     );
   };
 
+  const uploadSlideImage = (id: number, event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    updateSlide(id, "image", URL.createObjectURL(file));
+  };
+
   const handleSave = () => {
     setEditingId(null);
     setSaved(true);
@@ -275,22 +281,17 @@ export default function BannersSliders() {
                   {expandedId === slide.id && (
                     <div className="border-t border-gray-100 bg-gray-50 px-6 py-6">
                       <div className="grid grid-cols-2 gap-5">
-                        {/* Image URL */}
+                        {/* Image file */}
                         <div className="col-span-2">
                           <label className="block text-xs font-semibold text-gray-600 mb-1.5 uppercase tracking-wider">
                             Banner Image
                           </label>
-                          <div className="flex gap-2">
-                            <input
-                              type="text"
-                              value={slide.image}
-                              onChange={(e) => updateSlide(slide.id, "image", e.target.value)}
-                              className="flex-1 text-sm border border-gray-200 rounded-lg px-3 py-2 bg-white focus:outline-none focus:ring-2 focus:ring-gray-300"
-                              placeholder="Image URL or upload..."
-                            />
-                            <button className="flex items-center gap-1.5 text-sm font-medium text-gray-600 border border-gray-200 bg-white px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors">
-                              <Upload size={14} /> Upload
-                            </button>
+                          <div className="grid gap-3 rounded-xl border border-dashed border-gray-300 bg-white p-3 sm:grid-cols-[96px_minmax(0,1fr)] sm:items-center">
+                            <img src={slide.image} alt="" className="h-20 w-full rounded-lg object-cover sm:w-24" />
+                            <label className="inline-flex h-10 cursor-pointer items-center justify-center gap-1.5 rounded-lg bg-gray-900 px-3 text-sm font-medium text-white hover:bg-gray-700">
+                              <Upload size={14} /> Choose image
+                              <input type="file" accept="image/*" className="hidden" onChange={(event) => uploadSlideImage(slide.id, event)} />
+                            </label>
                           </div>
                         </div>
 

@@ -1,204 +1,57 @@
-'use client';
+import { useDeferredValue, useMemo, useState } from "react";
+import { CalendarClock, CheckCircle2, ChevronLeft, ChevronRight, Copy, Edit3, Loader2, Plus, Power, Search, Tag, Trash2, Users, X } from "lucide-react";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { useToast } from "@/lib/providers/ToastProvider";
+import { useAdminCoupons, useDeleteCoupon, useSaveCoupon, type AdminCoupon, type CouponStatus } from "@/lib/api/queries";
 
-import React, { useState, useMemo } from 'react';
-import { 
-  Search, Plus, Edit2, Trash2, Copy, Tag, Calendar, Percent 
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
-import CreateCouponModal from './_components/CreateCouponModal';
+type CouponDraft = Omit<AdminCoupon, "_id" | "computedStatus" | "usedCount" | "createdAt" | "updatedAt">;
+const statuses: Array<{ value: "all" | CouponStatus; label: string }> = [{ value: "all", label: "All statuses" }, { value: "active", label: "Active" }, { value: "scheduled", label: "Scheduled" }, { value: "expired", label: "Expired" }, { value: "exhausted", label: "Exhausted" }, { value: "disabled", label: "Disabled" }];
+const statusStyles: Record<CouponStatus, string> = { active: "status-active", scheduled: "bg-blue-50 text-blue-700 ring-blue-600/15", expired: "bg-slate-100 text-slate-600 ring-slate-500/15", exhausted: "bg-amber-50 text-amber-700 ring-amber-600/15", disabled: "bg-rose-50 text-rose-700 ring-rose-600/15" };
+const localInput = (date: Date | string) => { const value = new Date(date); return new Date(value.getTime() - value.getTimezoneOffset() * 60000).toISOString().slice(0, 16); };
+const freshDraft = (): CouponDraft => { const start = new Date(); const end = new Date(start.getTime() + 30 * 86400000); return { code: "", description: "", discountType: "percentage", value: 10, minimumOrder: 0, maximumDiscount: 0, usageLimit: 0, perCustomerLimit: 1, startsAt: localInput(start), endsAt: localInput(end), active: true, firstOrderOnly: false }; };
+const money = (value: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
+const shortDate = (value: string) => new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
 
-interface Coupon {
-  id: string;
-  code: string;
-  type: 'Percentage' | 'Fixed';
-  value: number;
-  minOrder: number;
-  usageLimit: number;
-  used: number;
-  startDate: string;
-  endDate: string;
-  status: 'Active' | 'Expired' | 'Scheduled';
+export default function AllCouponsPage({ createOnLoad = false }: { createOnLoad?: boolean }) {
+  const toast = useToast();
+  const [search, setSearch] = useState("");
+  const deferredSearch = useDeferredValue(search.trim());
+  const [status, setStatus] = useState<"all" | CouponStatus>("all");
+  const [page, setPage] = useState(1);
+  const [editing, setEditing] = useState<AdminCoupon | "new" | null>(createOnLoad ? "new" : null);
+  const [deleting, setDeleting] = useState<AdminCoupon | null>(null);
+  const params = useMemo(() => { const query = new URLSearchParams({ page: String(page), limit: "20", status }); if (deferredSearch) query.set("search", deferredSearch); return query.toString(); }, [deferredSearch, page, status]);
+  const couponsQuery = useAdminCoupons(params);
+  const deleteCoupon = useDeleteCoupon();
+  const coupons = couponsQuery.data?.items ?? [];
+  const summary = couponsQuery.data?.summary;
+  const pagination = couponsQuery.data?.pagination;
+  async function remove() { if (!deleting) return; try { const result = await deleteCoupon.mutateAsync(deleting._id); setDeleting(null); toast.success(result.archived ? "Coupon archived" : "Coupon deleted", result.archived ? "Used coupons are preserved for order history and disabled." : undefined); } catch (error) { toast.error("Coupon was not removed", error instanceof Error ? error.message : "Please try again."); } }
+  async function copy(code: string) { await navigator.clipboard.writeText(code); toast.success("Coupon copied", code); }
+
+  return <div className="mx-auto max-w-[1500px] space-y-6"><header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500"><Tag className="h-4 w-4" />Marketing</div><h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Coupons</h1><p className="mt-2 text-sm text-slate-500">Create controlled promotional codes with secure eligibility and redemption limits.</p></div><button type="button" onClick={() => setEditing("new")} className="action-primary"><Plus className="h-4 w-4" />Create coupon</button></header>
+    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><Metric label="Total coupons" value={summary?.totalCoupons ?? 0} icon={Tag} /><Metric label="Active" value={summary?.active ?? 0} icon={CheckCircle2} /><Metric label="Scheduled" value={summary?.scheduled ?? 0} icon={CalendarClock} /><Metric label="Total redemptions" value={summary?.totalUses ?? 0} icon={Users} /><Metric label="Unavailable" value={(summary?.expired ?? 0) + (summary?.exhausted ?? 0) + (summary?.disabled ?? 0)} icon={Power} /></section>
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><div className="grid gap-3 border-b border-slate-100 p-4 md:grid-cols-[minmax(260px,1fr)_200px]"><label className="relative"><span className="sr-only">Search coupon</span><Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => { setSearch(event.target.value.toUpperCase()); setPage(1); }} className="field pl-10 font-mono uppercase" placeholder="Search coupon code" /></label><select value={status} onChange={(event) => { setStatus(event.target.value as typeof status); setPage(1); }} className="field">{statuses.map((item) => <option key={item.value} value={item.value}>{item.label}</option>)}</select></div>
+      {couponsQuery.isLoading ? <Empty title="Loading coupons…" loading /> : couponsQuery.isError ? <Empty title="Coupons could not be loaded" detail={couponsQuery.error instanceof Error ? couponsQuery.error.message : "Check the server connection."} /> : !coupons.length ? <Empty title="No coupons found" detail="Create a coupon or change the current filters." /> : <div className="overflow-x-auto"><table className="w-full min-w-[1050px] text-left"><thead className="bg-slate-50 text-[11px] font-bold uppercase tracking-wider text-slate-500"><tr><th className="px-5 py-3">Coupon</th><th className="px-5 py-3">Offer</th><th className="px-5 py-3">Minimum</th><th className="px-5 py-3">Usage</th><th className="px-5 py-3">Validity</th><th className="px-5 py-3">Status</th><th className="px-5 py-3 text-right">Actions</th></tr></thead><tbody className="divide-y divide-slate-100">{coupons.map((coupon) => <tr key={coupon._id} className="hover:bg-slate-50/70"><td className="px-5 py-4"><div className="flex items-center gap-2"><code className="text-sm font-bold text-slate-950">{coupon.code}</code><button type="button" onClick={() => copy(coupon.code)} className="text-slate-400 hover:text-slate-900" aria-label={`Copy ${coupon.code}`}><Copy className="h-3.5 w-3.5" /></button></div><p className="mt-1 max-w-[240px] truncate text-xs text-slate-400">{coupon.description || "No internal description"}</p></td><td className="px-5 py-4"><p className="text-sm font-bold text-slate-900">{coupon.discountType === "percentage" ? `${coupon.value}% off` : `${money(coupon.value)} off`}</p>{coupon.maximumDiscount > 0 && coupon.discountType === "percentage" && <p className="mt-1 text-xs text-slate-400">Maximum {money(coupon.maximumDiscount)}</p>}</td><td className="px-5 py-4 text-sm text-slate-600">{coupon.minimumOrder ? money(coupon.minimumOrder) : "None"}</td><td className="px-5 py-4"><p className="text-sm font-semibold text-slate-800">{coupon.usedCount} / {coupon.usageLimit || "∞"}</p><div className="mt-2 h-1.5 w-24 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-slate-900" style={{ width: `${coupon.usageLimit ? Math.min(100, coupon.usedCount / coupon.usageLimit * 100) : 0}%` }} /></div><p className="mt-1 text-[10px] text-slate-400">{coupon.perCustomerLimit || "Unlimited"} per customer</p></td><td className="px-5 py-4 text-xs text-slate-500"><p>{shortDate(coupon.startsAt)}</p><p className="mt-1">to {shortDate(coupon.endsAt)}</p></td><td className="px-5 py-4"><span className={`inline-flex rounded-full px-2.5 py-1 text-xs font-semibold capitalize ring-1 ring-inset ${statusStyles[coupon.computedStatus]}`}>{coupon.computedStatus}</span>{coupon.firstOrderOnly && <p className="mt-1.5 text-[10px] font-semibold text-blue-600">First order only</p>}</td><td className="px-5 py-4"><div className="flex justify-end gap-1"><button type="button" onClick={() => setEditing(coupon)} className="icon-button" aria-label={`Edit ${coupon.code}`}><Edit3 className="h-4 w-4" /></button><button type="button" onClick={() => setDeleting(coupon)} className="icon-button text-rose-600" aria-label={`Delete ${coupon.code}`}><Trash2 className="h-4 w-4" /></button></div></td></tr>)}</tbody></table></div>}
+      {pagination && pagination.total > 0 && <footer className="flex flex-col gap-3 border-t border-slate-100 px-5 py-4 text-sm sm:flex-row sm:items-center sm:justify-between"><p className="text-slate-500">Showing {(pagination.page - 1) * pagination.limit + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}</p><div className="flex items-center gap-2"><button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page <= 1} className="page-button"><ChevronLeft className="h-4 w-4" />Previous</button><span className="px-2 font-semibold">{pagination.page} / {pagination.pages}</span><button type="button" onClick={() => setPage((value) => Math.min(pagination.pages, value + 1))} disabled={page >= pagination.pages} className="page-button">Next<ChevronRight className="h-4 w-4" /></button></div></footer>}
+    </section>{editing && <CouponEditor coupon={editing === "new" ? undefined : editing} onClose={() => setEditing(null)} />}
+    <ConfirmDialog open={Boolean(deleting)} title={deleting?.usedCount ? "Archive this coupon?" : "Delete this coupon?"} description={deleting?.usedCount ? "Because this coupon has order history, it will be disabled and preserved for audit records." : "This unused coupon will be permanently removed."} confirmLabel={deleting?.usedCount ? "Archive coupon" : "Delete coupon"} tone="danger" loading={deleteCoupon.isPending} onCancel={() => setDeleting(null)} onConfirm={remove} />
+  </div>;
 }
 
-const mockCoupons: Coupon[] = [
-  { id: 'CP001', code: 'SUMMER25', type: 'Percentage', value: 25, minOrder: 1500, usageLimit: 500, used: 142, startDate: '2026-05-01', endDate: '2026-05-31', status: 'Active' },
-  { id: 'CP002', code: 'WELCOME10', type: 'Fixed', value: 100, minOrder: 500, usageLimit: 1000, used: 876, startDate: '2026-04-01', endDate: '2026-06-30', status: 'Active' },
-  { id: 'CP003', code: 'FLASH50', type: 'Percentage', value: 50, minOrder: 3000, usageLimit: 200, used: 45, startDate: '2026-05-10', endDate: '2026-05-12', status: 'Active' },
-  { id: 'CP004', code: 'NEWUSER15', type: 'Percentage', value: 15, minOrder: 0, usageLimit: 300, used: 289, startDate: '2026-01-01', endDate: '2026-12-31', status: 'Active' },
-];
+function CouponEditor({ coupon, onClose }: { coupon?: AdminCoupon; onClose: () => void }) {
+  const toast = useToast();
+  const saveCoupon = useSaveCoupon();
+  const [draft, setDraft] = useState<CouponDraft>(coupon ? { code: coupon.code, description: coupon.description, discountType: coupon.discountType, value: coupon.value, minimumOrder: coupon.minimumOrder, maximumDiscount: coupon.maximumDiscount, usageLimit: coupon.usageLimit, perCustomerLimit: coupon.perCustomerLimit, startsAt: localInput(coupon.startsAt), endsAt: localInput(coupon.endsAt), active: coupon.active, firstOrderOnly: coupon.firstOrderOnly } : freshDraft());
+  async function save(event: React.FormEvent) { event.preventDefault(); if (new Date(draft.endsAt) <= new Date(draft.startsAt)) return toast.error("End date must be after the start date"); try { await saveCoupon.mutateAsync({ id: coupon?._id, payload: { ...draft, code: draft.code.toUpperCase(), startsAt: new Date(draft.startsAt).toISOString(), endsAt: new Date(draft.endsAt).toISOString() } }); toast.success(coupon ? "Coupon updated" : "Coupon created", draft.code.toUpperCase()); onClose(); } catch (error) { toast.error("Coupon was not saved", error instanceof Error ? error.message : "Please try again."); } }
+  return <div className="fixed inset-0 z-[80] flex items-end justify-center bg-slate-950/55 p-0 backdrop-blur-sm sm:items-center sm:p-4"><form onSubmit={save} className="flex max-h-[95vh] w-full max-w-3xl flex-col rounded-t-2xl bg-white shadow-2xl sm:rounded-2xl"><header className="flex items-center justify-between border-b border-slate-100 px-5 py-4"><div><h2 className="font-bold text-slate-950">{coupon ? `Edit ${coupon.code}` : "Create coupon"}</h2><p className="mt-1 text-xs text-slate-500">Coupon eligibility is verified securely when the order is placed.</p></div><button type="button" onClick={onClose} className="icon-button"><X className="h-4 w-4" /></button></header><div className="grid gap-5 overflow-y-auto p-5 sm:grid-cols-2">
+    <Field label="Coupon code" required><input value={draft.code} onChange={(event) => setDraft({ ...draft, code: event.target.value.toUpperCase().replace(/[^A-Z0-9_-]/g, "") })} minLength={3} maxLength={30} className="field font-mono uppercase" placeholder="WELCOME10" required /></Field><Field label="Status"><select value={draft.active ? "active" : "disabled"} onChange={(event) => setDraft({ ...draft, active: event.target.value === "active" })} className="field"><option value="active">Enabled</option><option value="disabled">Disabled</option></select></Field><div className="sm:col-span-2"><Field label="Description"><input value={draft.description} onChange={(event) => setDraft({ ...draft, description: event.target.value })} maxLength={300} className="field" placeholder="Internal campaign description" /></Field></div>
+    <Field label="Discount type"><select value={draft.discountType} onChange={(event) => setDraft({ ...draft, discountType: event.target.value as CouponDraft["discountType"] })} className="field"><option value="percentage">Percentage</option><option value="fixed">Fixed amount</option></select></Field><Field label={draft.discountType === "percentage" ? "Discount percentage" : "Discount amount (USD)"} required><input type="number" min="0.01" max={draft.discountType === "percentage" ? 100 : undefined} step="0.01" value={draft.value} onChange={(event) => setDraft({ ...draft, value: Number(event.target.value) })} className="field" required /></Field><Field label="Minimum order (USD)"><input type="number" min="0" step="0.01" value={draft.minimumOrder} onChange={(event) => setDraft({ ...draft, minimumOrder: Number(event.target.value) })} className="field" /></Field><Field label="Maximum discount (USD)"><input type="number" min="0" step="0.01" value={draft.maximumDiscount} disabled={draft.discountType === "fixed"} onChange={(event) => setDraft({ ...draft, maximumDiscount: Number(event.target.value) })} className="field" /><span className="mt-1 block text-[10px] text-slate-400">Zero means no cap.</span></Field>
+    <Field label="Total usage limit"><input type="number" min="0" step="1" value={draft.usageLimit} onChange={(event) => setDraft({ ...draft, usageLimit: Number(event.target.value) })} className="field" /><span className="mt-1 block text-[10px] text-slate-400">Zero means unlimited.</span></Field><Field label="Limit per customer"><input type="number" min="0" step="1" value={draft.perCustomerLimit} disabled={draft.firstOrderOnly} onChange={(event) => setDraft({ ...draft, perCustomerLimit: Number(event.target.value) })} className="field" /></Field><Field label="Starts at" required><input type="datetime-local" value={draft.startsAt} onChange={(event) => setDraft({ ...draft, startsAt: event.target.value })} className="field" required /></Field><Field label="Ends at" required><input type="datetime-local" value={draft.endsAt} onChange={(event) => setDraft({ ...draft, endsAt: event.target.value })} className="field" required /></Field>
+    <label className="sm:col-span-2 flex items-center justify-between rounded-xl border border-slate-200 bg-slate-50 p-4"><span><span className="block text-sm font-semibold text-slate-800">First-order customers only</span><span className="mt-1 block text-xs text-slate-500">Reject the coupon if this customer identity has an existing non-cancelled order.</span></span><input type="checkbox" checked={draft.firstOrderOnly} onChange={(event) => setDraft({ ...draft, firstOrderOnly: event.target.checked, perCustomerLimit: event.target.checked ? 1 : draft.perCustomerLimit })} className="h-5 w-5 accent-slate-950" /></label>
+  </div><footer className="flex justify-end gap-2 border-t border-slate-100 p-4"><button type="button" onClick={onClose} className="action-secondary">Cancel</button><button type="submit" disabled={saveCoupon.isPending} className="action-primary">{saveCoupon.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <CheckCircle2 className="h-4 w-4" />}{coupon ? "Save coupon" : "Create coupon"}</button></footer></form></div>;
+}
 
-const AllCouponsPage: React.FC = () => {
-  const [coupons, setCoupons] = useState<Coupon[]>(mockCoupons);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'All' | 'Active' | 'Expired' | 'Scheduled'>('All');
-  const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
-
-  const filteredCoupons = useMemo(() => {
-    let result = [...coupons];
-
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(c => c.code.toLowerCase().includes(term));
-    }
-
-    if (statusFilter !== 'All') {
-      result = result.filter(c => c.status === statusFilter);
-    }
-
-    return result;
-  }, [coupons, searchTerm, statusFilter]);
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Active': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400';
-      case 'Expired': return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400';
-      case 'Scheduled': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400';
-      default: return 'bg-gray-100 text-gray-700';
-    }
-  };
-
-
-  const handleCreateCoupon = (newCouponData: any) => {
-    const newCoupon: Coupon = {
-      ...newCouponData,
-      id: `CP${Date.now().toString().slice(-4)}`,
-      used: 0,
-      status: 'Active',
-    };
-
-    setCoupons(prev => [newCoupon, ...prev]);
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
-      <div className="max-w-7xl mx-auto">
-        <div className="flex justify-between items-center mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-              <Tag className="w-9 h-9" />
-              All Coupons
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">Manage promotional codes and discounts</p>
-          </div>
-
-          <motion.button
-        whileHover={{ scale: 1.02 }}
-        whileTap={{ scale: 0.98 }}
-        onClick={() => setIsCreateModalOpen(true)}
-        className="flex items-center gap-2 bg-indigo-600 text-white px-6 py-3 rounded-2xl font-medium hover:bg-indigo-700"
-      >
-        <Plus className="w-5 h-5" />
-        Create Coupon
-      </motion.button>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4 mb-8">
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-100 dark:border-gray-800">
-            <p className="text-gray-500">Total Coupons</p>
-            <p className="text-4xl font-bold mt-2">{coupons.length}</p>
-          </div>
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-100 dark:border-gray-800">
-            <p className="text-gray-500">Active Coupons</p>
-            <p className="text-4xl font-bold mt-2 text-emerald-600">
-              {coupons.filter(c => c.status === 'Active').length}
-            </p>
-          </div>
-          <div className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-100 dark:border-gray-800">
-            <p className="text-gray-500">Total Used</p>
-            <p className="text-4xl font-bold mt-2">
-              {coupons.reduce((sum, c) => sum + c.used, 0)}
-            </p>
-          </div>
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-100 dark:border-gray-800 mb-6">
-          <div className="flex gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search coupon code..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-11 py-3 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl focus:border-indigo-500"
-              />
-            </div>
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value as any)}
-              className="px-5 py-3 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl"
-            >
-              <option value="All">All Status</option>
-              <option value="Active">Active</option>
-              <option value="Expired">Expired</option>
-              <option value="Scheduled">Scheduled</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Coupons Table */}
-        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 overflow-hidden">
-          <table className="w-full">
-            <thead>
-              <tr className="bg-gray-50 dark:bg-gray-950 border-b">
-                <th className="px-8 py-5 text-left">Coupon Code</th>
-                <th className="px-8 py-5 text-left">Type</th>
-                <th className="px-8 py-5 text-right">Value</th>
-                <th className="px-8 py-5 text-right">Min Order</th>
-                <th className="px-8 py-5 text-center">Usage</th>
-                <th className="px-8 py-5 text-center">Validity</th>
-                <th className="px-8 py-5 text-center">Status</th>
-                <th className="px-8 py-5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {filteredCoupons.map((coupon) => (
-                <motion.tr key={coupon.id} className="hover:bg-gray-50 dark:hover:bg-gray-950/70 group">
-                  <td className="px-8 py-6 font-mono font-semibold text-lg">{coupon.code}</td>
-                  <td className="px-8 py-6">
-                    <span className="px-4 py-1 bg-purple-100 dark:bg-purple-900/30 text-purple-700 rounded-full text-sm">
-                      {coupon.type}
-                    </span>
-                  </td>
-                  <td className="px-8 py-6 text-right font-semibold">
-                    {coupon.type === 'Percentage' ? `${coupon.value}%` : `৳${coupon.value}`}
-                  </td>
-                  <td className="px-8 py-6 text-right">৳{coupon.minOrder}</td>
-                  <td className="px-8 py-6 text-center">
-                    <div className="text-sm">
-                      {coupon.used} / {coupon.usageLimit}
-                    </div>
-                  </td>
-                  <td className="px-8 py-6 text-center text-sm text-gray-500">
-                    {coupon.startDate} — {coupon.endDate}
-                  </td>
-                  <td className="px-8 py-6 text-center">
-                    <span className={`inline-flex px-4 py-1 rounded-full text-xs font-medium ${getStatusColor(coupon.status)}`}>
-                      {coupon.status}
-                    </span>
-                  </td>
-                  <td className="px-8 py-6 text-right">
-                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-all">
-                      <button className="p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><Copy className="w-4 h-4" /></button>
-                      <button className="p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl"><Edit2 className="w-4 h-4" /></button>
-                      <button className="p-3 hover:bg-gray-100 dark:hover:bg-gray-800 rounded-xl text-red-500"><Trash2 className="w-4 h-4" /></button>
-                    </div>
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-      <CreateCouponModal
-        isOpen={isCreateModalOpen}
-        onClose={() => setIsCreateModalOpen(false)}
-        onCreateCoupon={handleCreateCoupon}
-      />
-    </div>
-  );
-};
-
-export default AllCouponsPage;
+function Field({ label, required, children }: { label: string; required?: boolean; children: React.ReactNode }) { return <label><span className="mb-1.5 block text-xs font-semibold text-slate-600">{label}{required && <span className="text-rose-600"> *</span>}</span>{children}</label>; }
+function Metric({ label, value, icon: Icon }: { label: string; value: number; icon: typeof Tag }) { return <div className="flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 shadow-sm"><span className="flex h-10 w-10 items-center justify-center rounded-xl bg-slate-950 text-white"><Icon className="h-5 w-5" /></span><span><span className="block text-xs text-slate-500">{label}</span><span className="mt-1 block text-xl font-bold text-slate-950">{value}</span></span></div>; }
+function Empty({ title, detail, loading }: { title: string; detail?: string; loading?: boolean }) { return <div className="flex min-h-[340px] flex-col items-center justify-center p-8 text-center">{loading ? <Loader2 className="h-6 w-6 animate-spin text-slate-400" /> : <Tag className="h-9 w-9 text-slate-300" />}<h2 className="mt-3 font-bold text-slate-950">{title}</h2>{detail && <p className="mt-1 text-sm text-slate-500">{detail}</p>}</div>; }
