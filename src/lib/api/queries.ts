@@ -68,7 +68,6 @@ export type StorefrontContentResponse = {
   aboutPage?: AboutPageContent & { _id?: string; updatedAt?: string };
   banners?: AdminHeroBanner[];
   heroSettings?: HeroSettings;
-  homepageSections?: AdminHomepageSection[];
   navigation?: unknown;
   footer?: unknown;
 };
@@ -101,28 +100,6 @@ export type HeroSettings = {
   transition: "slide" | "fade";
   showDots: boolean;
   pauseOnHover: boolean;
-};
-
-export type AdminHomepageSection = {
-  _id?: string;
-  type: "hero" | "category_carousel" | "big_category_grid" | "info_strip" | "feature_grid" | "featured_products" | "reviews";
-  title: string;
-  eyebrow: string;
-  description: string;
-  ctaLabel: string;
-  ctaUrl: string;
-  status: "published" | "draft" | "hidden";
-  visibleDesktop: boolean;
-  visibleMobile: boolean;
-  sortOrder: number;
-  items: Array<{
-    title: string;
-    subtitle: string;
-    image?: StorefrontAsset;
-    url?: string;
-    meta?: string;
-    enabled: boolean;
-  }>;
 };
 
 export type OrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled";
@@ -493,19 +470,6 @@ export function useSaveHeroSettings() {
     onSuccess: (heroSettings) => {
       queryClient.setQueryData<StorefrontContentResponse>(["admin-storefront-content"], (current) =>
         current ? { ...current, heroSettings } : current
-      );
-    },
-  });
-}
-
-export function useSaveHomepageSections() {
-  const queryClient = useQueryClient();
-  return useMutation({
-    mutationFn: (payload: { sections: AdminHomepageSection[] }) =>
-      api.put<AdminHomepageSection[]>("/storefront/admin/homepage-sections", payload),
-    onSuccess: (homepageSections) => {
-      queryClient.setQueryData<StorefrontContentResponse>(["admin-storefront-content"], (current) =>
-        current ? { ...current, homepageSections } : current
       );
     },
   });

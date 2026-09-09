@@ -69,7 +69,6 @@ import HeaderMenu from "@/pages/HeaderMenu";
 import FooterManager from "@/pages/Footer";
 import FlashSalesPage from "@/pages/FlashSalePage";
 import ManagementPage from "@/pages/_shared/ManagementPage";
-import HomepageSectionsPage from "@/pages/HomepageSections";
 import ContactPageManager from "@/pages/ContactPage";
 
 /* Pages */
@@ -392,10 +391,6 @@ export const router = createBrowserRouter([
                 actionLabel="Save styles"
               />
             ),
-          },
-          {
-            path: "/storefront/homepage",
-            element: <HomepageSectionsPage />,
           },
           {
             path: "/storefront/media",

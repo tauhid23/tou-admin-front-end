@@ -157,11 +157,10 @@ const baseNavGroups: NavGroup[] = [
       },
       {
         title: "Pages & Content",
-        path: "/storefront/homepage",
+        path: "/storefront/about-us",
         icon: FileText,
         children: [
           // { title: "All Pages", path: "/storefront/pages" },
-          { title: "Homepage Sections", path: "/storefront/homepage" },
           { title: "Blog Posts", path: "/storefront/blog" },
           { title: "About Us", path: "/storefront/about-us"},
           { title: "Contact Page", path: "/storefront/contact", badge: "Inbox" },
