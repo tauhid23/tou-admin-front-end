@@ -1,6 +1,7 @@
 // src/pages/dashboard/components/RecentOrders.tsx
 
-import { ArrowRight, Globe, Smartphone, Store } from "lucide-react";
+import { ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import type { Order } from "@/pages/dashboard/_components/types";
 
@@ -12,16 +13,11 @@ const statusConfig: Record<
   Order["status"],
   { label: string; classes: string }
 > = {
-  completed:  { label: "Completed",  classes: "bg-neutral-900 text-white" },
+  delivered:  { label: "Delivered",  classes: "bg-neutral-900 text-white" },
   processing: { label: "Processing", classes: "bg-neutral-200 text-neutral-700" },
+  shipped:    { label: "Shipped", classes: "bg-blue-50 text-blue-700 border border-blue-200" },
   pending:    { label: "Pending",    classes: "bg-amber-50 text-amber-700 border border-amber-200" },
   cancelled:  { label: "Cancelled", classes: "bg-red-50 text-red-600 border border-red-200" },
-};
-
-const channelIcon: Record<Order["channel"], React.ElementType> = {
-  web:    Globe,
-  mobile: Smartphone,
-  pos:    Store,
 };
 
 export default function RecentOrders({ orders }: RecentOrdersProps) {
@@ -33,9 +29,9 @@ export default function RecentOrders({ orders }: RecentOrdersProps) {
           <h2 className="text-[15px] font-semibold text-neutral-900">Recent Orders</h2>
           <p className="text-[12px] text-neutral-400 mt-0.5">Last 6 transactions</p>
         </div>
-        <button className="flex items-center gap-1 text-[12px] font-medium text-neutral-500 hover:text-neutral-900 transition-colors">
+        <Link to="/orders" className="flex items-center gap-1 text-[12px] font-medium text-neutral-500 hover:text-neutral-900 transition-colors">
           View all <ArrowRight className="w-3.5 h-3.5" />
-        </button>
+        </Link>
       </div>
 
       {/* Table */}
@@ -43,7 +39,7 @@ export default function RecentOrders({ orders }: RecentOrdersProps) {
         <table className="w-full">
           <thead>
             <tr className="border-b border-neutral-100">
-              {["Order", "Customer", "Product", "Channel", "Amount", "Status", "Time"].map(
+              {["Order", "Customer", "Product", "Amount", "Status", "Time"].map(
                 (col) => (
                   <th
                     key={col}
@@ -58,7 +54,7 @@ export default function RecentOrders({ orders }: RecentOrdersProps) {
           <tbody className="divide-y divide-neutral-50">
             {orders.map((order) => {
               const status = statusConfig[order.status];
-              const ChannelIcon = channelIcon[order.channel];
+              const initials = order.customer.split(" ").map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 
               return (
                 <tr
@@ -76,7 +72,7 @@ export default function RecentOrders({ orders }: RecentOrdersProps) {
                   <td className="px-5 py-3.5">
                     <div className="flex items-center gap-2.5">
                       <div className="w-7 h-7 rounded-full bg-neutral-900 flex items-center justify-center text-white text-[10px] font-bold shrink-0">
-                        {order.avatar}
+                        {initials}
                       </div>
                       <span className="text-[13px] font-medium text-neutral-900 whitespace-nowrap">
                         {order.customer}
@@ -87,18 +83,8 @@ export default function RecentOrders({ orders }: RecentOrdersProps) {
                   {/* Product */}
                   <td className="px-5 py-3.5">
                     <span className="text-[12.5px] text-neutral-600 whitespace-nowrap">
-                      {order.product}
+                      {order.product}{order.itemCount > 1 ? ` +${order.itemCount - 1}` : ""}
                     </span>
-                  </td>
-
-                  {/* Channel */}
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-1.5">
-                      <ChannelIcon className="w-3.5 h-3.5 text-neutral-400" />
-                      <span className="text-[12px] text-neutral-500 capitalize">
-                        {order.channel}
-                      </span>
-                    </div>
                   </td>
 
                   {/* Amount */}

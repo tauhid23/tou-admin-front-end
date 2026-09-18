@@ -19,12 +19,11 @@ export interface RevenuePoint {
 export interface Order {
   id: string;
   customer: string;
-  avatar: string;    // initials
   product: string;
   amount: number;
-  status: "completed" | "pending" | "processing" | "cancelled";
+  status: "pending" | "processing" | "shipped" | "delivered" | "cancelled";
   date: string;
-  channel: "web" | "mobile" | "pos";
+  itemCount: number;
 }
 
 export interface TopProduct {
@@ -33,7 +32,6 @@ export interface TopProduct {
   category: string;
   revenue: number;
   units: number;
-  growth: number;
   maxRevenue: number; // for progress bar scaling
 }
 

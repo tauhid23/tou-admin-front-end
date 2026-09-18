@@ -1,341 +1,75 @@
-'use client';
+import { useDeferredValue, useMemo, useState, type ReactNode } from "react";
+import { AlertCircle, Banknote, Box, Check, CheckCircle2, ChevronLeft, ChevronRight, ClipboardCheck, Clock3, Download, Eye, Loader2, PackageCheck, Plus, RefreshCw, RotateCcw, Search, ShieldAlert, Truck, X, XCircle } from "lucide-react";
+import ConfirmDialog from "@/components/ui/ConfirmDialog";
+import { useAdminOrders, useAdminReturns, useCreateReturn, useUpdateReturn, type AdminOrder, type AdminReturn, type ReturnReason, type ReturnStatus } from "@/lib/api/queries";
+import { useToast } from "@/lib/providers/ToastProvider";
 
-import React, { useState, useMemo } from 'react';
-import { 
-  Search, Download, Eye, RotateCcw, CheckCircle, XCircle, DollarSign, Package 
-} from 'lucide-react';
-import { motion, AnimatePresence } from 'framer-motion';
+const statusMeta: Record<ReturnStatus, { label: string; style: string; icon: typeof Clock3 }> = {
+  requested: { label: "Requested", style: "bg-amber-50 text-amber-700 ring-amber-600/15", icon: Clock3 },
+  approved: { label: "Approved", style: "bg-blue-50 text-blue-700 ring-blue-600/15", icon: ClipboardCheck },
+  received: { label: "Received", style: "bg-violet-50 text-violet-700 ring-violet-600/15", icon: PackageCheck },
+  refunded: { label: "Refunded", style: "bg-emerald-50 text-emerald-700 ring-emerald-600/15", icon: CheckCircle2 },
+  rejected: { label: "Rejected", style: "bg-rose-50 text-rose-700 ring-rose-600/15", icon: XCircle },
+};
+const reasonLabels: Record<ReturnReason, string> = { defective: "Defective product", damaged: "Damaged in transit", wrong_item: "Wrong item", wrong_size: "Wrong size", not_as_described: "Not as described", changed_mind: "Changed mind", other: "Other" };
+const returnReasons = Object.keys(reasonLabels) as ReturnReason[];
+const money = (value: number, currency = "USD") => new Intl.NumberFormat("en-US", { style: "currency", currency }).format(value);
+const shortDate = (value: string) => new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
+const dateTime = (value: string) => new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 
-interface ReturnRequest {
-  id: string;
-  returnNumber: string;
-  orderNumber: string;
-  customerName: string;
-  customerEmail: string;
-  productName: string;
-  reason: string;
-  amount: number;
-  status: 'Return Requested' | 'Return Approved' | 'Items Received' | 'Refund Processed' | 'Rejected';
-  requestDate: string;
-  returnReasonDetail?: string;
+function StatusBadge({ status }: { status: ReturnStatus }) { const meta = statusMeta[status]; const Icon = meta.icon; return <span className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-xs font-semibold ring-1 ring-inset ${meta.style}`}><Icon className="h-3.5 w-3.5" />{meta.label}</span>; }
+
+export default function ReturnsAndRefundsPage() {
+  const toast = useToast();
+  const [search, setSearch] = useState(""); const deferredSearch = useDeferredValue(search.trim());
+  const [status, setStatus] = useState<"all" | ReturnStatus>("all"); const [page, setPage] = useState(1);
+  const [selected, setSelected] = useState<AdminReturn | null>(null); const [creating, setCreating] = useState(false);
+  const params = useMemo(() => { const query = new URLSearchParams({ page: String(page), limit: "20" }); if (deferredSearch) query.set("search", deferredSearch); if (status !== "all") query.set("status", status); return query.toString(); }, [deferredSearch, page, status]);
+  const returnsQuery = useAdminReturns(params); const returns = returnsQuery.data?.items ?? []; const summary = returnsQuery.data?.summary; const pagination = returnsQuery.data?.pagination;
+  const hasFilters = Boolean(search || status !== "all");
+
+  function exportCsv() { if (!returns.length) return; const rows = [["Return", "Order", "Customer", "Email", "Items", "Reason", "Refund", "Currency", "Status", "Requested"], ...returns.map((item) => [item.returnNumber, item.orderNumber, item.customer.name, item.customer.email ?? "", item.items.map((entry) => `${entry.title} x${entry.quantity}`).join("; "), reasonLabels[item.reason], String(item.refundAmount), item.currency, item.status, item.createdAt])]; const csv = rows.map((row) => row.map((cell) => `"${String(cell).replaceAll('"', '""')}"`).join(",")).join("\n"); const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" })); const link = document.createElement("a"); link.href = url; link.download = `returns-${new Date().toISOString().slice(0, 10)}.csv`; link.click(); URL.revokeObjectURL(url); toast.success("Report exported", `${returns.length} visible return records were saved.`); }
+
+  return <div className="mx-auto max-w-[1600px] space-y-6">
+    <header className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between"><div><div className="mb-2 flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.16em] text-slate-500"><RotateCcw className="h-4 w-4" />Post-purchase operations</div><h1 className="text-2xl font-bold tracking-tight text-slate-950 sm:text-3xl">Returns & refunds</h1><p className="mt-2 max-w-2xl text-sm text-slate-500">Control approvals, inbound items, inventory recovery, and refund evidence from one audited workflow.</p></div><div className="flex flex-wrap gap-2"><button type="button" onClick={() => returnsQuery.refetch()} disabled={returnsQuery.isFetching} className="action-secondary"><RefreshCw className={`h-4 w-4 ${returnsQuery.isFetching ? "animate-spin" : ""}`} />Refresh</button><button type="button" onClick={exportCsv} disabled={!returns.length} className="action-secondary"><Download className="h-4 w-4" />Export</button><button type="button" onClick={() => setCreating(true)} className="action-primary"><Plus className="h-4 w-4" />New return</button></div></header>
+    <section className="grid gap-3 sm:grid-cols-2 xl:grid-cols-5"><Metric label="All returns" value={summary?.total ?? 0} icon={RotateCcw} onClick={() => { setStatus("all"); setPage(1); }} /><Metric label="Needs review" value={summary?.requested ?? 0} icon={Clock3} tone="amber" onClick={() => { setStatus("requested"); setPage(1); }} /><Metric label="In progress" value={(summary?.approved ?? 0) + (summary?.received ?? 0)} icon={Truck} tone="blue" /><Metric label="Completed" value={summary?.refunded ?? 0} icon={CheckCircle2} tone="emerald" onClick={() => { setStatus("refunded"); setPage(1); }} /><Metric label="Refunded value" value={money(summary?.refundedAmount ?? 0)} icon={Banknote} tone="emerald" /></section>
+    <section className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm"><div className="border-b border-slate-100 p-4"><div className="grid gap-3 lg:grid-cols-[minmax(280px,1fr)_220px]"><label className="relative block"><span className="sr-only">Search returns</span><Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => { setSearch(event.target.value); setPage(1); }} placeholder="Search return, order, customer or product" className="field pl-10" /></label><select value={status} onChange={(event) => { setStatus(event.target.value as typeof status); setPage(1); }} className="field capitalize"><option value="all">All statuses</option>{(Object.keys(statusMeta) as ReturnStatus[]).map((value) => <option key={value} value={value}>{statusMeta[value].label}</option>)}</select></div>{hasFilters && <button type="button" onClick={() => { setSearch(""); setStatus("all"); setPage(1); }} className="mt-3 text-xs font-semibold text-slate-500 hover:text-slate-950">Clear all filters</button>}</div>
+      {returnsQuery.isLoading ? <Empty icon={<Loader2 className="h-6 w-6 animate-spin" />} title="Loading return requests…" /> : returnsQuery.isError ? <Empty icon={<AlertCircle className="h-9 w-9 text-rose-500" />} title="Returns could not be loaded" detail={returnsQuery.error instanceof Error ? returnsQuery.error.message : "Check the server connection and try again."} action={() => returnsQuery.refetch()} /> : !returns.length ? <Empty icon={<RotateCcw className="h-10 w-10 text-slate-300" />} title="No return requests found" detail={hasFilters ? "Try changing or clearing your filters." : "Log a return from a delivered order to begin."} action={!hasFilters ? () => setCreating(true) : undefined} actionLabel="Create return" /> : <div className="overflow-x-auto"><table className="w-full min-w-[1100px] text-left"><thead className="bg-slate-50/80 text-[11px] font-bold uppercase tracking-wider text-slate-500"><tr><th className="px-5 py-3">Return</th><th className="px-5 py-3">Customer</th><th className="px-5 py-3">Items</th><th className="px-5 py-3">Reason</th><th className="px-5 py-3">Refund</th><th className="px-5 py-3">Status</th><th className="px-5 py-3">Requested</th><th className="px-5 py-3 text-right">Action</th></tr></thead><tbody className="divide-y divide-slate-100">{returns.map((item) => <tr key={item._id} className="transition hover:bg-slate-50/70"><td className="px-5 py-4"><button type="button" onClick={() => setSelected(item)} className="font-mono text-sm font-bold text-slate-950 hover:underline">{item.returnNumber}</button><p className="mt-1 font-mono text-xs text-slate-400">{item.orderNumber}</p></td><td className="px-5 py-4"><p className="max-w-[170px] truncate text-sm font-semibold text-slate-800">{item.customer.name}</p><p className="mt-1 max-w-[190px] truncate text-xs text-slate-400">{item.customer.email || item.customer.phone}</p></td><td className="px-5 py-4"><p className="text-sm font-semibold text-slate-700">{item.items.reduce((sum, entry) => sum + entry.quantity, 0)} unit(s)</p><p className="mt-1 max-w-[220px] truncate text-xs text-slate-400">{item.items.map((entry) => entry.title).join(", ")}</p></td><td className="px-5 py-4 text-sm text-slate-600">{reasonLabels[item.reason]}</td><td className="px-5 py-4 text-sm font-bold text-slate-950">{money(item.refundAmount, item.currency)}</td><td className="px-5 py-4"><StatusBadge status={item.status} /></td><td className="px-5 py-4 text-sm text-slate-600">{shortDate(item.createdAt)}</td><td className="px-5 py-4 text-right"><button type="button" onClick={() => setSelected(item)} className="inline-flex h-9 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-3 text-xs font-bold text-slate-700 shadow-sm hover:bg-slate-50"><Eye className="h-3.5 w-3.5" />Review</button></td></tr>)}</tbody></table></div>}
+      {pagination && pagination.total > 0 && <footer className="flex flex-col gap-3 border-t border-slate-100 px-5 py-4 text-sm sm:flex-row sm:items-center sm:justify-between"><p className="text-slate-500">Showing {(pagination.page - 1) * pagination.limit + 1}–{Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total}</p><div className="flex items-center gap-2"><button type="button" onClick={() => setPage((value) => Math.max(1, value - 1))} disabled={page <= 1} className="page-button"><ChevronLeft className="h-4 w-4" />Previous</button><span className="px-2 font-semibold text-slate-700">{pagination.page} / {pagination.pages}</span><button type="button" onClick={() => setPage((value) => Math.min(pagination.pages, value + 1))} disabled={page >= pagination.pages} className="page-button">Next<ChevronRight className="h-4 w-4" /></button></div></footer>}
+    </section>
+    {selected && <ReturnDrawer key={`${selected._id}-${selected.updatedAt}`} request={selected} onClose={() => setSelected(null)} onUpdated={setSelected} />}
+    {creating && <CreateReturnModal onClose={() => setCreating(false)} onCreated={(request) => { setCreating(false); setSelected(request); }} />}
+  </div>;
 }
 
-const mockReturns: ReturnRequest[] = [
-  {
-    id: 'RET-1001',
-    returnNumber: '#RET-1001',
-    orderNumber: '#ORD-1001',
-    customerName: 'Ahmed Rahman',
-    customerEmail: 'ahmed.r@gmail.com',
-    productName: 'Wireless Headphones Pro',
-    reason: 'Defective Product',
-    amount: 129.99,
-    status: 'Return Requested',
-    requestDate: '2026-05-06',
-    returnReasonDetail: 'Sound is distorted on left side.'
-  },
-  {
-    id: 'RET-1002',
-    returnNumber: '#RET-1002',
-    orderNumber: '#ORD-1004',
-    customerName: 'Nadia Islam',
-    customerEmail: 'nadia.i@gmail.com',
-    productName: 'Organic Cotton T-Shirt',
-    reason: 'Wrong Size',
-    amount: 24.99,
-    status: 'Items Received',
-    requestDate: '2026-05-07',
-  },
-  {
-    id: 'RET-1003',
-    returnNumber: '#RET-1003',
-    orderNumber: '#ORD-1005',
-    customerName: 'Fahim Chowdhury',
-    customerEmail: 'fahim.c@gmail.com',
-    productName: 'Smart Watch Ultra',
-    reason: 'Changed Mind',
-    amount: 299.99,
-    status: 'Refund Processed',
-    requestDate: '2026-05-05',
-  },
-];
+function ReturnDrawer({ request, onClose, onUpdated }: { request: AdminReturn; onClose: () => void; onUpdated: (request: AdminReturn) => void }) {
+  const toast = useToast(); const updateReturn = useUpdateReturn();
+  const [internalNote, setInternalNote] = useState(request.internalNote ?? ""); const [statusNote, setStatusNote] = useState(""); const [carrier, setCarrier] = useState(request.returnShipment?.carrier ?? ""); const [trackingNumber, setTrackingNumber] = useState(request.returnShipment?.trackingNumber ?? "");
+  const [refundMethod, setRefundMethod] = useState<"cash" | "bank_transfer" | "original_payment" | "store_credit">(request.refund?.method ?? "bank_transfer"); const [refundReference, setRefundReference] = useState(request.refund?.reference ?? "");
+  const [restock, setRestock] = useState<Record<string, number>>(Object.fromEntries(request.items.map((item) => [item.orderItemId, item.restockQuantity || item.quantity]))); const [confirming, setConfirming] = useState<ReturnStatus | null>(null);
+  async function persist(status?: ReturnStatus) { try { const payload = { status, note: statusNote, internalNote, carrier, trackingNumber, ...(status === "received" ? { restockQuantities: request.items.map((item) => ({ orderItemId: item.orderItemId, quantity: restock[item.orderItemId] ?? 0 })) } : {}), ...(status === "refunded" ? { refundMethod, refundReference } : {}) }; const updated = await updateReturn.mutateAsync({ id: request._id, payload }); onUpdated(updated); setConfirming(null); setStatusNote(""); toast.success(status ? "Workflow updated" : "Return saved", status ? `${request.returnNumber} is now ${statusMeta[updated.status].label.toLowerCase()}.` : "Operational details were saved."); } catch (error) { setConfirming(null); toast.error("Update failed", error instanceof Error ? error.message : "The return could not be updated."); } }
+  function requestAction(status: ReturnStatus) { if (status === "rejected" && !statusNote.trim()) return toast.error("Reason required", "Add a note explaining why this return is being rejected."); if (status === "refunded" && !refundReference.trim()) return toast.error("Reference required", "Record a transaction, receipt, or transfer reference."); setConfirming(status); }
+  const nextActions: Array<{ status: ReturnStatus; label: string; tone: string }> = request.status === "requested" ? [{ status: "approved", label: "Approve return", tone: "bg-blue-600 hover:bg-blue-700" }, { status: "rejected", label: "Reject", tone: "bg-rose-600 hover:bg-rose-700" }] : request.status === "approved" ? [{ status: "received", label: "Confirm receipt", tone: "bg-violet-600 hover:bg-violet-700" }, { status: "rejected", label: "Reject", tone: "bg-rose-600 hover:bg-rose-700" }] : request.status === "received" ? [{ status: "refunded", label: "Process refund", tone: "bg-emerald-600 hover:bg-emerald-700" }] : [];
+  return <><div className="fixed inset-0 z-[70] bg-slate-950/45 backdrop-blur-[2px]" onMouseDown={onClose} /><aside role="dialog" aria-modal="true" aria-label={`Return ${request.returnNumber}`} className="fixed inset-y-0 right-0 z-[80] flex w-full max-w-3xl flex-col bg-slate-50 shadow-2xl"><header className="flex items-start justify-between border-b border-slate-200 bg-white px-5 py-4 sm:px-6"><div><div className="flex flex-wrap items-center gap-2"><h2 className="font-mono text-lg font-bold text-slate-950">{request.returnNumber}</h2><StatusBadge status={request.status} /></div><p className="mt-1 text-xs text-slate-500">Order {request.orderNumber} · opened {dateTime(request.createdAt)}</p></div><button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100" aria-label="Close return"><X className="h-5 w-5" /></button></header>
+    <div className="flex-1 overflow-y-auto p-4 sm:p-6"><div className="grid gap-5 lg:grid-cols-[minmax(0,1.15fr)_minmax(270px,.85fr)]"><div className="space-y-5"><Panel title="Returned items" icon={Box}><div className="divide-y divide-slate-100">{request.items.map((item) => <div key={item.orderItemId} className="flex gap-3 py-4 first:pt-0 last:pb-0">{item.image ? <img src={item.image} alt="" className="h-16 w-14 rounded-lg bg-slate-100 object-cover" /> : <span className="flex h-16 w-14 items-center justify-center rounded-lg bg-slate-100"><Box className="h-5 w-5 text-slate-300" /></span>}<div className="min-w-0 flex-1"><p className="text-sm font-semibold text-slate-900">{item.title}</p><p className="mt-1 text-xs text-slate-500">{[item.sku && `SKU ${item.sku}`, item.selectedColor, item.selectedSize].filter(Boolean).join(" · ") || "Standard option"}</p><p className="mt-2 text-xs text-slate-500">{item.quantity} × {money(item.unitPrice, request.currency)}</p></div><p className="text-sm font-bold text-slate-900">{money(item.lineAmount, request.currency)}</p></div>)}</div><div className="mt-4 flex items-center justify-between border-t border-slate-100 pt-4"><span className="text-sm font-semibold text-slate-500">Authorized refund</span><span className="text-xl font-bold text-slate-950">{money(request.refundAmount, request.currency)}</span></div></Panel><Panel title="Return reason" icon={ShieldAlert}><p className="font-semibold text-slate-900">{reasonLabels[request.reason]}</p><p className="mt-2 whitespace-pre-line text-sm leading-6 text-slate-600">{request.details}</p>{request.policyOverride && <p className="mt-3 rounded-lg bg-amber-50 px-3 py-2 text-xs font-semibold text-amber-700">30-day policy override applied</p>}</Panel><Panel title="Customer" icon={RotateCcw}><p className="font-semibold text-slate-900">{request.customer.name}</p><p className="mt-2 text-sm text-slate-500">{request.customer.email || "No email"}</p><p className="mt-1 text-sm text-slate-500">{request.customer.phone || "No phone"}</p></Panel><Panel title="Audit history" icon={Clock3}><ol className="space-y-4">{[...request.history].reverse().map((entry, index) => <li key={entry._id ?? index} className="flex gap-3"><span className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full bg-slate-900 ring-4 ring-slate-100" /><div><p className="text-sm font-semibold text-slate-800">{statusMeta[entry.status].label}</p><p className="mt-0.5 text-xs text-slate-400">{dateTime(entry.changedAt)} by {entry.changedByEmail}</p>{entry.note && <p className="mt-1 text-sm text-slate-600">{entry.note}</p>}</div></li>)}</ol></Panel></div>
+      <div className="space-y-5"><Panel title="Operational details" icon={Truck}><FieldLabel label="Return carrier"><input value={carrier} onChange={(event) => setCarrier(event.target.value)} className="field" placeholder="Courier or customer drop-off" /></FieldLabel><FieldLabel label="Tracking number"><input value={trackingNumber} onChange={(event) => setTrackingNumber(event.target.value)} className="field" placeholder="Inbound shipment reference" /></FieldLabel><FieldLabel label="Status note"><textarea value={statusNote} onChange={(event) => setStatusNote(event.target.value)} rows={3} maxLength={500} className="field h-auto py-2.5" placeholder="Add context for this workflow step" /></FieldLabel></Panel>
+      {request.status === "approved" && <Panel title="Inventory inspection" icon={PackageCheck}><p className="mb-4 text-xs leading-5 text-slate-500">Enter only quantities suitable for resale. Damaged or unsellable units should be set to zero.</p>{request.items.map((item) => <FieldLabel key={item.orderItemId} label={`${item.title} · returned ${item.quantity}`}><input type="number" min={0} max={item.quantity} value={restock[item.orderItemId] ?? 0} onChange={(event) => setRestock((current) => ({ ...current, [item.orderItemId]: Math.min(item.quantity, Math.max(0, Number(event.target.value) || 0)) }))} className="field" /></FieldLabel>)}</Panel>}
+      {request.status === "received" && <Panel title="Refund evidence" icon={Banknote}><FieldLabel label="Refund method"><select value={refundMethod} onChange={(event) => setRefundMethod(event.target.value as typeof refundMethod)} className="field"><option value="bank_transfer">Bank transfer</option><option value="cash">Cash</option><option value="original_payment">Original payment method</option><option value="store_credit">Store credit</option></select></FieldLabel><FieldLabel label="Transaction / receipt reference" required><input value={refundReference} onChange={(event) => setRefundReference(event.target.value)} className="field" placeholder="Required audit reference" /></FieldLabel><div className="rounded-xl bg-emerald-50 p-3 text-sm text-emerald-800">Refund to process: <strong>{money(request.refundAmount, request.currency)}</strong></div></Panel>}
+      {request.refund?.processedAt && <Panel title="Refund completed" icon={CheckCircle2}><p className="text-sm font-semibold capitalize text-slate-900">{request.refund.method?.replaceAll("_", " ")}</p><p className="mt-2 font-mono text-xs text-slate-500">{request.refund.reference}</p><p className="mt-2 text-xs text-slate-400">{dateTime(request.refund.processedAt)} by {request.refund.processedByEmail}</p></Panel>}
+      <Panel title="Internal note" icon={ClipboardCheck}><textarea value={internalNote} onChange={(event) => setInternalNote(event.target.value)} rows={5} maxLength={2000} className="field h-auto py-2.5" placeholder="Visible only to administrators" /><p className="mt-2 text-right text-xs text-slate-400">{internalNote.length}/2000</p></Panel></div></div></div>
+    <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-slate-200 bg-white px-5 py-4 sm:px-6"><button type="button" onClick={() => persist()} disabled={updateReturn.isPending || internalNote === (request.internalNote ?? "") && carrier === (request.returnShipment?.carrier ?? "") && trackingNumber === (request.returnShipment?.trackingNumber ?? "")} className="action-secondary"><Check className="h-4 w-4" />Save details</button><div className="ml-auto flex flex-wrap gap-2"><button type="button" onClick={onClose} className="h-10 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600 hover:bg-slate-50">Close</button>{nextActions.map((action) => <button key={action.status} type="button" onClick={() => requestAction(action.status)} disabled={updateReturn.isPending} className={`inline-flex h-10 items-center gap-2 rounded-xl px-4 text-sm font-semibold text-white ${action.tone}`}><Check className="h-4 w-4" />{action.label}</button>)}</div></footer></aside>
+    <ConfirmDialog open={Boolean(confirming)} title={confirming ? `${statusMeta[confirming].label} this return?` : "Update return?"} description={confirming === "received" ? "Sellable quantities will be added back to inventory and recorded in the stock ledger." : confirming === "refunded" ? `This records a ${money(request.refundAmount, request.currency)} refund against the original order.` : confirming === "rejected" ? "The request will be closed as rejected and its reserved refundable quantity released." : "The return will move to the approved workflow."} confirmLabel={confirming === "refunded" ? "Record refund" : "Confirm update"} tone={confirming === "rejected" ? "danger" : "default"} loading={updateReturn.isPending} onCancel={() => setConfirming(null)} onConfirm={() => confirming && persist(confirming)} /></>;
+}
 
-const ReturnsAndRefundsPage: React.FC = () => {
-  const [returns, setReturns] = useState<ReturnRequest[]>(mockReturns);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<string>('All');
-  const [selectedReturn, setSelectedReturn] = useState<ReturnRequest | null>(null);
-  const [actionLoading, setActionLoading] = useState(false);
+function CreateReturnModal({ onClose, onCreated }: { onClose: () => void; onCreated: (request: AdminReturn) => void }) {
+  const toast = useToast(); const createReturn = useCreateReturn(); const [search, setSearch] = useState(""); const deferred = useDeferredValue(search.trim()); const [order, setOrder] = useState<AdminOrder | null>(null); const [quantities, setQuantities] = useState<Record<string, number>>({}); const [reason, setReason] = useState<ReturnReason>("defective"); const [details, setDetails] = useState(""); const [refundAmount, setRefundAmount] = useState(""); const [internalNote, setInternalNote] = useState(""); const [policyOverride, setPolicyOverride] = useState(false);
+  const ordersQuery = useAdminOrders(`status=delivered&limit=20${deferred ? `&search=${encodeURIComponent(deferred)}` : ""}`); const selectedValue = order?.items.reduce((sum, item) => sum + (quantities[item._id ?? ""] ?? 0) * item.unitPrice, 0) ?? 0;
+  function selectOrder(value: AdminOrder) { setOrder(value); setQuantities({}); setRefundAmount(""); }
+  async function submit() { if (!order) return; const items = order.items.filter((item) => item._id && (quantities[item._id] ?? 0) > 0).map((item) => ({ orderItemId: item._id!, quantity: quantities[item._id!] })); if (!items.length) return toast.error("Select return items", "Choose at least one item and quantity."); if (details.trim().length < 5) return toast.error("Details required", "Describe the reason for this return."); try { const created = await createReturn.mutateAsync({ orderId: order._id, items, reason, details, refundAmount: Number(refundAmount || selectedValue), internalNote, policyOverride }); toast.success("Return created", `${created.returnNumber} is ready for review.`); onCreated(created); } catch (error) { toast.error("Could not create return", error instanceof Error ? error.message : "Please review the request and try again."); } }
+  return <><div className="fixed inset-0 z-[90] bg-slate-950/55 backdrop-blur-sm" /><div className="fixed inset-0 z-[100] flex items-end justify-center sm:items-center sm:p-4"><section role="dialog" aria-modal="true" aria-label="Create return" className="flex max-h-[95vh] w-full max-w-3xl flex-col rounded-t-2xl bg-slate-50 shadow-2xl sm:rounded-2xl"><header className="flex items-start justify-between border-b border-slate-200 bg-white px-5 py-4 sm:rounded-t-2xl sm:px-6"><div><h2 className="text-lg font-bold text-slate-950">Create return request</h2><p className="mt-1 text-sm text-slate-500">Start from a delivered order and select the exact quantities.</p></div><button type="button" onClick={onClose} className="flex h-9 w-9 items-center justify-center rounded-xl text-slate-400 hover:bg-slate-100"><X className="h-5 w-5" /></button></header><div className="flex-1 overflow-y-auto p-4 sm:p-6">{!order ? <div><label className="relative block"><Search className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-slate-400" /><input value={search} onChange={(event) => setSearch(event.target.value)} className="field pl-10" placeholder="Search delivered order, customer, email or phone" /></label><div className="mt-4 overflow-hidden rounded-2xl border border-slate-200 bg-white">{ordersQuery.isLoading ? <div className="flex min-h-52 items-center justify-center"><Loader2 className="h-5 w-5 animate-spin" /></div> : !ordersQuery.data?.items.length ? <div className="p-10 text-center text-sm text-slate-500">No delivered orders found.</div> : <div className="divide-y divide-slate-100">{ordersQuery.data.items.map((item) => <button key={item._id} type="button" onClick={() => selectOrder(item)} className="flex w-full items-center justify-between gap-4 p-4 text-left hover:bg-slate-50"><div><p className="font-mono text-sm font-bold text-slate-950">{item.orderNumber}</p><p className="mt-1 text-sm text-slate-600">{item.customer.name} · {item.items.length} line item(s)</p></div><div className="text-right"><p className="text-sm font-bold text-slate-950">{money(item.total, item.currency)}</p><p className="mt-1 text-xs text-slate-400">Delivered {shortDate(item.deliveredAt ?? item.updatedAt)}</p></div></button>)}</div>}</div></div> : <div className="space-y-5"><div className="flex items-center justify-between rounded-2xl border border-slate-200 bg-white p-4"><div><p className="font-mono text-sm font-bold text-slate-950">{order.orderNumber}</p><p className="mt-1 text-sm text-slate-500">{order.customer.name} · delivered {shortDate(order.deliveredAt ?? order.updatedAt)}</p></div><button type="button" onClick={() => setOrder(null)} className="text-xs font-bold text-slate-500 hover:text-slate-950">Change order</button></div><Panel title="Select items" icon={Box}><div className="space-y-3">{order.items.map((item) => { const id = item._id ?? ""; return <div key={id || item.productId} className="flex items-center gap-3 rounded-xl border border-slate-100 p-3">{item.image ? <img src={item.image} alt="" className="h-14 w-12 rounded-lg object-cover" /> : <span className="h-14 w-12 rounded-lg bg-slate-100" />}<div className="min-w-0 flex-1"><p className="truncate text-sm font-semibold text-slate-900">{item.title}</p><p className="mt-1 text-xs text-slate-500">Ordered {item.quantity} · {money(item.unitPrice, order.currency)} each</p></div><input type="number" aria-label={`Return quantity for ${item.title}`} min={0} max={item.quantity} value={quantities[id] ?? 0} onChange={(event) => { const quantity = Math.min(item.quantity, Math.max(0, Number(event.target.value) || 0)); const next = { ...quantities, [id]: quantity }; setQuantities(next); const amount = order.items.reduce((sum, entry) => sum + (next[entry._id ?? ""] ?? 0) * entry.unitPrice, 0); setRefundAmount(amount ? amount.toFixed(2) : ""); }} className="h-10 w-20 rounded-lg border border-slate-200 px-3 text-center text-sm font-bold outline-none focus:border-slate-400" /></div>; })}</div></Panel><div className="grid gap-5 md:grid-cols-2"><Panel title="Request details" icon={ShieldAlert}><FieldLabel label="Reason"><select value={reason} onChange={(event) => setReason(event.target.value as ReturnReason)} className="field">{returnReasons.map((value) => <option key={value} value={value}>{reasonLabels[value]}</option>)}</select></FieldLabel><FieldLabel label="Customer explanation" required><textarea value={details} onChange={(event) => setDetails(event.target.value)} rows={4} maxLength={2000} className="field h-auto py-2.5" /></FieldLabel></Panel><Panel title="Refund authorization" icon={Banknote}><FieldLabel label={`Refund amount (${order.currency})`} required><input type="number" min={0.01} max={selectedValue} step="0.01" value={refundAmount} onChange={(event) => setRefundAmount(event.target.value)} className="field" /></FieldLabel><p className="text-xs text-slate-500">Selected item value: {money(selectedValue, order.currency)}. Discounts and policy adjustments can be reflected in the authorized amount.</p><label className="mt-4 flex items-start gap-2 rounded-xl bg-amber-50 p-3 text-xs text-amber-800"><input type="checkbox" checked={policyOverride} onChange={(event) => setPolicyOverride(event.target.checked)} className="mt-0.5" /><span><strong>Policy override</strong><br />Allow this request if the delivery is older than 30 days.</span></label></Panel></div><Panel title="Internal note" icon={ClipboardCheck}><textarea value={internalNote} onChange={(event) => setInternalNote(event.target.value)} rows={3} maxLength={2000} className="field h-auto py-2.5" placeholder="Optional context for the operations team" /></Panel></div>}</div><footer className="flex justify-end gap-2 border-t border-slate-200 bg-white px-5 py-4 sm:rounded-b-2xl sm:px-6"><button type="button" onClick={onClose} className="h-10 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-600">Cancel</button>{order && <button type="button" onClick={submit} disabled={createReturn.isPending} className="action-primary">{createReturn.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Plus className="h-4 w-4" />}Create return</button>}</footer></section></div></>;
+}
 
-  const filteredReturns = useMemo(() => {
-    let result = [...returns];
-
-    if (searchTerm) {
-      const term = searchTerm.toLowerCase();
-      result = result.filter(r =>
-        r.returnNumber.toLowerCase().includes(term) ||
-        r.orderNumber.toLowerCase().includes(term) ||
-        r.customerName.toLowerCase().includes(term)
-      );
-    }
-
-    if (statusFilter !== 'All') {
-      result = result.filter(r => r.status === statusFilter);
-    }
-
-    return result.sort((a, b) => new Date(b.requestDate).getTime() - new Date(a.requestDate).getTime());
-  }, [returns, searchTerm, statusFilter]);
-
-  const stats = {
-    totalRequests: returns.length,
-    pending: returns.filter(r => r.status === 'Return Requested').length,
-    approved: returns.filter(r => r.status === 'Return Approved' || r.status === 'Items Received').length,
-    refundedAmount: returns
-      .filter(r => r.status === 'Refund Processed')
-      .reduce((sum, r) => sum + r.amount, 0),
-  };
-
-  const getStatusColor = (status: string) => {
-    switch (status) {
-      case 'Return Requested': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400';
-      case 'Return Approved': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/40 dark:text-blue-400';
-      case 'Items Received': return 'bg-purple-100 text-purple-700 dark:bg-purple-900/40 dark:text-purple-400';
-      case 'Refund Processed': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-400';
-      case 'Rejected': return 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400';
-      default: return 'bg-gray-100 text-gray-700';
-    }
-  };
-
-  const updateReturnStatus = (newStatus: ReturnRequest['status']) => {
-    if (!selectedReturn) return;
-
-    setActionLoading(true);
-
-    setTimeout(() => {
-      setReturns(prev => prev.map(item =>
-        item.id === selectedReturn.id ? { ...item, status: newStatus } : item
-      ));
-      setActionLoading(false);
-      alert(`✅ Return ${selectedReturn.returnNumber} updated to ${newStatus}`);
-      setSelectedReturn(null);
-    }, 600);
-  };
-
-  return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-950 p-6">
-      <div className="max-w-7xl mx-auto">
-        {/* Header */}
-        <div className="flex justify-between items-start mb-8">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900 dark:text-white flex items-center gap-3">
-              <RotateCcw className="w-9 h-9" />
-              Returns & Refunds
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-1">Manage all return and refund requests</p>
-          </div>
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            className="flex items-center gap-2 px-5 py-3 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-2xl hover:bg-gray-50"
-          >
-            <Download className="w-4 h-4" />
-            Export Report
-          </motion.button>
-        </div>
-
-        {/* Stats */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-          {[
-            { label: "Total Requests", value: stats.totalRequests, icon: Package, color: "blue" },
-            { label: "Pending Approval", value: stats.pending, icon: RotateCcw, color: "amber" },
-            { label: "Approved", value: stats.approved, icon: CheckCircle, color: "blue" },
-            { label: "Refunded Amount", value: `$${stats.refundedAmount.toFixed(2)}`, icon: DollarSign, color: "emerald" },
-          ].map((stat, i) => (
-            <motion.div key={i} initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.05 }}
-              className="bg-white dark:bg-gray-900 rounded-3xl p-6 border border-gray-100 dark:border-gray-800">
-              <div className="flex justify-between">
-                <div>
-                  <p className="text-sm text-gray-500">{stat.label}</p>
-                  <p className="text-3xl font-semibold mt-3">{stat.value}</p>
-                </div>
-                <stat.icon className={`w-10 h-10 text-${stat.color}-600`} />
-              </div>
-            </motion.div>
-          ))}
-        </div>
-
-        {/* Filters */}
-        <div className="bg-white dark:bg-gray-900 rounded-3xl p-5 border border-gray-100 dark:border-gray-800 mb-6">
-          <div className="flex flex-col lg:flex-row gap-4">
-            <div className="relative flex-1">
-              <Search className="absolute left-4 top-3.5 w-5 h-5 text-gray-400" />
-              <input
-                type="text"
-                placeholder="Search by Return ID, Order ID or Customer..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-                className="w-full pl-11 py-3 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl focus:border-indigo-500"
-              />
-            </div>
-
-            <select
-              value={statusFilter}
-              onChange={(e) => setStatusFilter(e.target.value)}
-              className="px-5 py-3 bg-gray-50 dark:bg-gray-950 border border-gray-200 dark:border-gray-800 rounded-2xl focus:border-indigo-500"
-            >
-              <option value="All">All Status</option>
-              <option value="Return Requested">Return Requested</option>
-              <option value="Return Approved">Return Approved</option>
-              <option value="Items Received">Items Received</option>
-              <option value="Refund Processed">Refund Processed</option>
-              <option value="Rejected">Rejected</option>
-            </select>
-          </div>
-        </div>
-
-        {/* Table */}
-        <div className="bg-white dark:bg-gray-900 rounded-3xl border border-gray-100 dark:border-gray-800 overflow-hidden">
-          <table className="w-full min-w-[1000px]">
-            <thead>
-              <tr className="bg-gray-50 dark:bg-gray-950 border-b">
-                <th className="px-6 py-5 text-left">Return ID</th>
-                <th className="px-6 py-5 text-left">Order ID</th>
-                <th className="px-6 py-5 text-left">Customer</th>
-                <th className="px-6 py-5 text-left">Product</th>
-                <th className="px-6 py-5 text-left">Reason</th>
-                <th className="px-6 py-5 text-right">Amount</th>
-                <th className="px-6 py-5 text-center">Status</th>
-                <th className="px-6 py-5 text-left">Date</th>
-                <th className="px-6 py-5 text-right">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-gray-800">
-              {filteredReturns.map((ret, idx) => (
-                <motion.tr
-                  key={ret.id}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.03 }}
-                  className="hover:bg-gray-50 dark:hover:bg-gray-950/70 group cursor-pointer"
-                  onClick={() => setSelectedReturn(ret)}
-                >
-                  <td className="px-6 py-5 font-mono font-medium">{ret.returnNumber}</td>
-                  <td className="px-6 py-5 font-mono text-gray-500">{ret.orderNumber}</td>
-                  <td className="px-6 py-5">
-                    <div className="font-medium">{ret.customerName}</div>
-                    <div className="text-sm text-gray-500">{ret.customerEmail}</div>
-                  </td>
-                  <td className="px-6 py-5 text-sm">{ret.productName}</td>
-                  <td className="px-6 py-5 text-sm text-gray-600 dark:text-gray-400">{ret.reason}</td>
-                  <td className="px-6 py-5 text-right font-semibold">${ret.amount.toFixed(2)}</td>
-                  <td className="px-6 py-5 text-center">
-                    <span className={`inline-flex px-4 py-1.5 text-xs font-medium rounded-full ${getStatusColor(ret.status)}`}>
-                      {ret.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-5 text-sm text-gray-500">{ret.requestDate}</td>
-                  <td className="px-6 py-5 text-right">
-                    <Eye className="w-4 h-4 text-gray-400 group-hover:text-indigo-600" />
-                  </td>
-                </motion.tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
-
-      {/* ==================== RETURN DETAILS MODAL ==================== */}
-      <AnimatePresence>
-        {selectedReturn && (
-          <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="bg-white dark:bg-gray-900 w-full max-w-2xl rounded-3xl overflow-hidden"
-            >
-              <div className="px-8 py-6 border-b flex justify-between items-center">
-                <h2 className="text-2xl font-bold">Return {selectedReturn.returnNumber}</h2>
-                <button onClick={() => setSelectedReturn(null)}>
-                  <XCircle className="w-6 h-6" />
-                </button>
-              </div>
-
-              <div className="p-8 space-y-8">
-                <div className="grid grid-cols-2 gap-6">
-                  <div>
-                    <p className="text-sm text-gray-500">Customer</p>
-                    <p className="font-medium">{selectedReturn.customerName}</p>
-                  </div>
-                  <div>
-                    <p className="text-sm text-gray-500">Order Reference</p>
-                    <p className="font-medium">{selectedReturn.orderNumber}</p>
-                  </div>
-                </div>
-
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Product</p>
-                  <p className="font-medium">{selectedReturn.productName}</p>
-                </div>
-
-                <div>
-                  <p className="text-sm text-gray-500 mb-1">Reason</p>
-                  <p className="font-medium">{selectedReturn.reason}</p>
-                  {selectedReturn.returnReasonDetail && (
-                    <p className="mt-2 text-sm bg-gray-50 dark:bg-gray-950 p-4 rounded-2xl">{selectedReturn.returnReasonDetail}</p>
-                  )}
-                </div>
-
-                <div className="flex justify-between items-center py-4 border-t border-b">
-                  <span className="text-sm text-gray-500">Refund Amount</span>
-                  <span className="text-2xl font-bold">${selectedReturn.amount.toFixed(2)}</span>
-                </div>
-              </div>
-
-              {/* Action Buttons */}
-              <div className="p-8 pt-0 flex flex-wrap gap-3">
-                {selectedReturn.status === 'Return Requested' && (
-                  <>
-                    <button
-                      onClick={() => updateReturnStatus('Return Approved')}
-                      disabled={actionLoading}
-                      className="flex-1 py-3 bg-green-600 hover:bg-green-700 text-white rounded-2xl font-medium"
-                    >
-                      Approve Return
-                    </button>
-                    <button
-                      onClick={() => updateReturnStatus('Rejected')}
-                      disabled={actionLoading}
-                      className="flex-1 py-3 bg-red-600 hover:bg-red-700 text-white rounded-2xl font-medium"
-                    >
-                      Reject Request
-                    </button>
-                  </>
-                )}
-
-                {selectedReturn.status === 'Return Approved' && (
-                  <button
-                    onClick={() => updateReturnStatus('Items Received')}
-                    className="flex-1 py-3 bg-purple-600 hover:bg-purple-700 text-white rounded-2xl font-medium"
-                  >
-                    Mark Items as Received
-                  </button>
-                )}
-
-                {selectedReturn.status === 'Items Received' && (
-                  <button
-                    onClick={() => updateReturnStatus('Refund Processed')}
-                    className="flex-1 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-2xl font-medium"
-                  >
-                    Process Refund
-                  </button>
-                )}
-              </div>
-            </motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-    </div>
-  );
-};
-
-export default ReturnsAndRefundsPage;
+function Metric({ label, value, icon: Icon, tone = "slate", onClick }: { label: string; value: string | number; icon: typeof RotateCcw; tone?: "slate" | "amber" | "blue" | "emerald"; onClick?: () => void }) { const tones = { slate: "bg-slate-100 text-slate-600", amber: "bg-amber-50 text-amber-700", blue: "bg-blue-50 text-blue-700", emerald: "bg-emerald-50 text-emerald-700" }; const content = <><div className={`flex h-10 w-10 items-center justify-center rounded-xl ${tones[tone]}`}><Icon className="h-5 w-5" /></div><div><p className="text-xs font-medium text-slate-500">{label}</p><p className="mt-1 text-xl font-bold tracking-tight text-slate-950">{value}</p></div></>; const classes = "flex items-center gap-3 rounded-2xl border border-slate-200 bg-white p-4 text-left shadow-sm"; return onClick ? <button type="button" onClick={onClick} className={`${classes} transition hover:-translate-y-0.5 hover:shadow-md`}>{content}</button> : <div className={classes}>{content}</div>; }
+function Panel({ title, icon: Icon, children }: { title: string; icon: typeof RotateCcw; children: ReactNode }) { return <section className="rounded-2xl border border-slate-200 bg-white p-4 shadow-sm sm:p-5"><h3 className="mb-4 flex items-center gap-2 text-sm font-bold text-slate-950"><Icon className="h-4 w-4 text-slate-500" />{title}</h3>{children}</section>; }
+function FieldLabel({ label, required, children }: { label: string; required?: boolean; children: ReactNode }) { return <label className="mb-4 block last:mb-0"><span className="mb-1.5 block text-xs font-semibold text-slate-600">{label}{required && <span className="text-rose-600"> *</span>}</span>{children}</label>; }
+function Empty({ icon, title, detail, action, actionLabel = "Try again" }: { icon: ReactNode; title: string; detail?: string; action?: () => void; actionLabel?: string }) { return <div className="flex min-h-[360px] flex-col items-center justify-center px-6 text-center">{icon}<h2 className="mt-3 font-bold text-slate-950">{title}</h2>{detail && <p className="mt-1 text-sm text-slate-500">{detail}</p>}{action && <button type="button" onClick={action} className="mt-4 rounded-xl bg-slate-950 px-4 py-2 text-sm font-semibold text-white">{actionLabel}</button>}</div>; }

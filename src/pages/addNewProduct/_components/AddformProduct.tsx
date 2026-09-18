@@ -90,6 +90,7 @@ type ApiProduct = {
   };
   status?: ProductStatus;
   featured?: boolean;
+  freeShipping?: boolean;
 };
 
 type ProductFormData = {
@@ -109,13 +110,12 @@ type ProductFormData = {
   warehouse: string;
   sizes: string;
   tags: string[];
-  rating: string;
-  reviewsCount: string;
   deliveryWindow: string;
   shipsFrom: string;
   deliveryNote: string;
   status: ProductStatus;
   featured: boolean;
+  freeShipping: boolean;
 };
 
 const emptyForm: ProductFormData = {
@@ -135,13 +135,12 @@ const emptyForm: ProductFormData = {
   warehouse: "Main warehouse",
   sizes: "",
   tags: [],
-  rating: "0",
-  reviewsCount: "0",
   deliveryWindow: "2-3 days",
   shipsFrom: "Local warehouse",
   deliveryNote: "",
   status: "draft",
   featured: false,
+  freeShipping: false,
 };
 
 function slugify(value: string) {
@@ -210,13 +209,12 @@ function productToFormData(product: ApiProduct): ProductFormData {
     warehouse: product.inventory?.warehouse ?? "Main warehouse",
     sizes: product.sizes?.join(", ") ?? "",
     tags: product.tags ?? [],
-    rating: stringifyNumber(product.rating) || "0",
-    reviewsCount: stringifyNumber(product.reviewsCount) || "0",
     deliveryWindow: formatDeliveryWindow(product.deliveryEstimate),
     shipsFrom: product.deliveryEstimate?.shipsFrom ?? "Local warehouse",
     deliveryNote: product.deliveryEstimate?.note ?? "",
     status: product.status === "active" ? "active" : "draft",
     featured: Boolean(product.featured),
+    freeShipping: Boolean(product.freeShipping),
   };
 }
 
@@ -295,7 +293,7 @@ export default function AddProductForm() {
         return {
           ...current,
           title: value,
-          slug: current.slug ? current.slug : slugify(value),
+          slug: slugify(value),
         };
       }
 
@@ -463,8 +461,6 @@ export default function AddProductForm() {
         }),
       sizes: parseList(formData.sizes),
       tags: formData.tags,
-      rating: numberOrZero(formData.rating),
-      reviewsCount: numberOrZero(formData.reviewsCount),
       inventory: {
         stock: numberOrZero(formData.stock),
         reserved: numberOrZero(formData.reserved),
@@ -475,6 +471,7 @@ export default function AddProductForm() {
       deliveryEstimate,
       status: formData.status,
       featured: formData.featured,
+      freeShipping: formData.freeShipping,
     };
 
     try {
@@ -563,9 +560,10 @@ export default function AddProductForm() {
                     type="text"
                     name="slug"
                     value={formData.slug}
-                    onChange={handleChange}
                     required
-                    className="mt-2 h-11 w-full rounded-xl border border-slate-200 bg-white px-4 font-mono text-sm outline-none transition focus:border-slate-400"
+                    readOnly
+                    aria-readonly="true"
+                    className="mt-2 h-11 w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-4 font-mono text-sm text-slate-500"
                     placeholder="premium-wireless-headphones"
                   />
                 </label>
@@ -636,8 +634,9 @@ export default function AddProductForm() {
                     placeholder="S, M, L, XL"
                   />
                 </label>
-                <NumberField label="Rating" name="rating" value={formData.rating} onChange={handleChange} min={0} max={5} step={0.1} />
-                <NumberField label="Reviews count" name="reviewsCount" value={formData.reviewsCount} onChange={handleChange} />
+                <div className="rounded-xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-500 md:col-span-2">
+                  Product ratings and review totals are calculated automatically from approved customer reviews.
+                </div>
                 <label className="flex min-h-11 items-center gap-3 rounded-xl border border-slate-200 px-4 text-sm font-semibold text-slate-700 md:mt-7">
                   <input
                     type="checkbox"
@@ -646,6 +645,15 @@ export default function AddProductForm() {
                     className="h-4 w-4 rounded border-slate-300"
                   />
                   Feature on storefront
+                </label>
+                <label className="flex min-h-11 items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50/60 px-4 text-sm font-semibold text-emerald-800 md:mt-7">
+                  <input
+                    type="checkbox"
+                    checked={formData.freeShipping}
+                    onChange={(event) => setFormData((current) => ({ ...current, freeShipping: event.target.checked }))}
+                    className="h-4 w-4 rounded border-emerald-300 accent-emerald-600"
+                  />
+                  Free shipping product
                 </label>
               </div>
             </Panel>

@@ -60,7 +60,7 @@ const baseNavGroups: NavGroup[] = [
           { title: "Categories", path: "/products/categories" },
           { title: "Subcategories", path: "/products/subcategories" },
           { title: "Inventory", path: "/products/inventory" },
-          { title: "Reviews", path: "/products/reviews", badge: "8" },
+          { title: "Reviews", path: "/products/reviews" },
         ],
       },
       {
@@ -117,56 +117,24 @@ const baseNavGroups: NavGroup[] = [
           { title: "Flash Sales", path: "/marketing/flash-sales" },
         ],
       },
-      {
-        title: "Promotions",
-        path: "/marketing/promotions",
-        icon: Megaphone,
-        children: [
-          { title: "Campaigns", path: "/marketing/promotions" },
-          { title: "Loyalty Program", path: "/marketing/loyalty" },
-          { title: "Referral Program", path: "/marketing/referral", isNew: true },
-          { title: "Abandoned Cart", path: "/marketing/abandoned-cart" },
-        ],
-      },
-      {
-        title: "Email Marketing",
-        path: "/marketing/email",
-        icon: Mail,
-        children: [
-          { title: "Newsletters", path: "/marketing/email/newsletters" },
-          { title: "Automations", path: "/marketing/email/automations" },
-          { title: "Subscribers", path: "/marketing/email/subscribers" },
-          { title: "Templates", path: "/marketing/email/templates" },
-        ],
-      },
+      // Future: Promotions, loyalty, referrals, abandoned-cart, and email marketing.
     ],
   },
   {
     label: "Storefront",
     items: [
-      {
-        title: "Appearance",
-        path: "/appearance",
-        icon: Palette,
-        children: [
-          { title: "Themes", path: "/storefront/themes" },
-          { title: "Banners & Sliders", path: "/appearance/banners-sliders" },
-          { title: "Colour & Typography", path: "/storefront/branding" },
-          { title: "Logo & Favicon", path: "/appearance/logo-favicon" },
-        ],
-      },
+      // Future: Appearance, themes, banners, branding, logo, and favicon management.
       {
         title: "Pages & Content",
-        path: "/storefront/homepage",
+        path: "/storefront/about-us",
         icon: FileText,
         children: [
           // { title: "All Pages", path: "/storefront/pages" },
-          { title: "Homepage Sections", path: "/storefront/homepage" },
-          { title: "Blog Posts", path: "/storefront/blog" },
+          // Future: Blog Posts (currently local placeholder data).
           { title: "About Us", path: "/storefront/about-us"},
           { title: "Contact Page", path: "/storefront/contact", badge: "Inbox" },
           // { title: "Announcements", path: "/storefront/announcements" },
-          { title: "Taglines", path: "/storefront/tagline" },
+          // Future: Taglines (currently local placeholder data).
           // { title: "Header Menu", path: "/storefront/header" },
           { title: "Footer Links", path: "/storefront/footer" },
         ],
@@ -191,29 +159,7 @@ const baseNavGroups: NavGroup[] = [
   {
     label: "Analytics & SEO",
     items: [
-      {
-        title: "Reports",
-        path: "/analytics/reports",
-        icon: BarChart2,
-        children: [
-          { title: "Sales Report", path: "/analytics/sales" },
-          { title: "Traffic", path: "/analytics/traffic" },
-          { title: "Conversion Funnel", path: "/analytics/conversion" },
-          { title: "Product Performance", path: "/analytics/products" },
-          { title: "Customer Insights", path: "/analytics/customers" },
-        ],
-      },
-      {
-        title: "SEO",
-        path: "/seo",
-        icon: Search,
-        children: [
-          { title: "Meta Tags", path: "/seo/meta" },
-          { title: "Sitemap", path: "/seo/sitemap" },
-          { title: "Redirects", path: "/seo/redirects" },
-          { title: "Structured Data", path: "/seo/schema" },
-        ],
-      },
+      // Future: Reports, traffic, conversion, product/customer analytics, and SEO.
       {
         title: "Reviews",
         path: "/reviews",
@@ -237,48 +183,10 @@ const baseNavGroups: NavGroup[] = [
           { title: "Snapchat Pixel", path: "/integrations/snapchat-pixel" },
         ],
       },
-      {
-        title: "Payments",
-        path: "/integrations/payments",
-        icon: CreditCard,
-        children: [
-          { title: "Payment Gateways", path: "/integrations/payments" },
-          { title: "Currencies", path: "/integrations/currencies" },
-          { title: "Invoices", path: "/integrations/invoices" },
-        ],
-      },
-      {
-        title: "Apps & Webhooks",
-        path: "/integrations/apps",
-        icon: Webhook,
-        isNew: true,
-        children: [
-          { title: "App Store", path: "/integrations/apps", isNew: true },
-          { title: "Webhooks", path: "/integrations/webhooks" },
-          { title: "API Keys", path: "/integrations/api-keys" },
-        ],
-      },
+      // Future: Payment gateways, currencies, invoices, apps, webhooks, and API keys.
     ],
   },
-  {
-    label: "System",
-    items: [
-      {
-        title: "Settings",
-        path: "/settings",
-        icon: Settings,
-        children: [
-          { title: "General", path: "/settings/general" },
-          { title: "Store Details", path: "/settings/store" },
-          { title: "Tax Settings", path: "/settings/tax" },
-          { title: "Notifications", path: "/settings/notifications" },
-          { title: "Team & Roles", path: "/settings/team" },
-          { title: "Billing & Plan", path: "/settings/billing" },
-        ],
-      },
-      { title: "Help & Support", path: "/help", icon: HelpCircle },
-    ],
-  },
+  // Future: System settings, team roles, billing, and help/support.
 ];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────

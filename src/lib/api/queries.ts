@@ -68,9 +68,23 @@ export type StorefrontContentResponse = {
   aboutPage?: AboutPageContent & { _id?: string; updatedAt?: string };
   banners?: AdminHeroBanner[];
   heroSettings?: HeroSettings;
-  homepageSections?: AdminHomepageSection[];
   navigation?: unknown;
-  footer?: unknown;
+  footer?: FooterContent;
+};
+
+export type FooterContent = {
+  _id?: string;
+  updatedAt?: string;
+  columns: Array<{
+    _id?: string;
+    title: string;
+    visible: boolean;
+    links: Array<{ _id?: string; label: string; href: string; visible: boolean }>;
+  }>;
+  socialDescription: string;
+  socials: Array<{ _id?: string; label: string; href: string; visible: boolean }>;
+  payments: string[];
+  copyright: string;
 };
 
 export type StorefrontAsset = { url: string; publicId: string; alt: string };
@@ -103,28 +117,6 @@ export type HeroSettings = {
   pauseOnHover: boolean;
 };
 
-export type AdminHomepageSection = {
-  _id?: string;
-  type: "hero" | "category_carousel" | "big_category_grid" | "info_strip" | "feature_grid" | "featured_products" | "reviews";
-  title: string;
-  eyebrow: string;
-  description: string;
-  ctaLabel: string;
-  ctaUrl: string;
-  status: "published" | "draft" | "hidden";
-  visibleDesktop: boolean;
-  visibleMobile: boolean;
-  sortOrder: number;
-  items: Array<{
-    title: string;
-    subtitle: string;
-    image?: StorefrontAsset;
-    url?: string;
-    meta?: string;
-    enabled: boolean;
-  }>;
-};
-
 export type OrderStatus = "pending" | "processing" | "shipped" | "delivered" | "cancelled";
 export type PaymentStatus = "pending" | "paid" | "failed" | "refunded";
 
@@ -145,6 +137,7 @@ export type AdminOrder = {
     promotionName?: string;
     selectedColor?: string;
     selectedSize?: string;
+    freeShipping?: boolean;
   }>;
   subtotal: number;
   shipping: number;
@@ -159,7 +152,7 @@ export type AdminOrder = {
   paymentMethod: "cod";
   paymentStatus: PaymentStatus;
   status: OrderStatus;
-  fulfilment?: { courierName?: string; trackingNumber?: string; estimatedDeliveryAt?: string };
+  fulfilment?: { courierName?: string; trackingNumber?: string; courierCharge?: number; estimatedDeliveryAt?: string };
   adminNote?: string;
   cancellationReason?: string;
   confirmedAt?: string;
@@ -182,6 +175,52 @@ export type AdminOrdersResponse = {
   items: AdminOrder[];
   pagination: { page: number; limit: number; total: number; pages: number };
   summary: Record<OrderStatus, number> & { totalOrders: number; revenue: number };
+};
+
+export type DashboardOverview = {
+  period: { days: number; start: string; end: string };
+  summary: {
+    grossRevenue: number; refunds: number; netRevenue: number; costOfGoods: number; courierPayout: number; grossProfit: number;
+    grossMargin: number; orders: number; averageOrderValue: number; pendingFulfilment: number; lowStockProducts: number;
+    changes: { netRevenue: number; grossProfit: number; orders: number; averageOrderValue: number };
+  };
+  timeline: Array<{ date: string; revenue: number; orders: number }>;
+  recentOrders: Array<{ id: string; orderNumber: string; customer: string; product: string; itemCount: number; total: number; currency: string; status: OrderStatus; createdAt: string }>;
+  topProducts: Array<{ id: string; name: string; category: string; revenue: number; units: number; maxRevenue: number }>;
+  lowStockProducts: Array<{ id: string; title: string; sku: string; stock: number; reorderPoint: number }>;
+};
+
+export type ReturnStatus = "requested" | "approved" | "received" | "refunded" | "rejected";
+export type ReturnReason = "defective" | "damaged" | "wrong_item" | "wrong_size" | "not_as_described" | "changed_mind" | "other";
+export type AdminReturn = {
+  _id: string;
+  returnNumber: string;
+  orderId: string;
+  orderNumber: string;
+  customer: { name: string; email?: string; phone?: string };
+  currency: string;
+  items: Array<{ _id?: string; orderItemId: string; productId: string; title: string; sku?: string; image?: string; selectedColor?: string; selectedSize?: string; quantity: number; unitPrice: number; lineAmount: number; restockQuantity: number }>;
+  reason: ReturnReason;
+  details: string;
+  status: ReturnStatus;
+  refundAmount: number;
+  refund?: { method?: "cash" | "bank_transfer" | "original_payment" | "store_credit"; reference?: string; processedAt?: string; processedByEmail?: string };
+  returnShipment?: { carrier?: string; trackingNumber?: string };
+  internalNote?: string;
+  policyOverride: boolean;
+  inventoryRestocked: boolean;
+  receivedAt?: string;
+  approvedAt?: string;
+  rejectedAt?: string;
+  history: Array<{ _id?: string; status: ReturnStatus; note?: string; changedByEmail: string; changedAt: string }>;
+  createdByEmail: string;
+  createdAt: string;
+  updatedAt: string;
+};
+export type AdminReturnsResponse = {
+  items: AdminReturn[];
+  summary: Record<ReturnStatus, number> & { total: number; refundedAmount: number };
+  pagination: { page: number; limit: number; total: number; pages: number };
 };
 
 export type CustomerSegment = "all" | "repeat" | "high-value" | "new" | "inactive" | "blocked";
@@ -220,6 +259,34 @@ export type AdminCustomersResponse = {
     blockedCustomers: number;
     customerRevenue: number;
   };
+};
+
+export type ReviewStatus = "pending" | "approved" | "rejected";
+export type AdminReview = {
+  _id: string;
+  productId: string;
+  productSlug: string;
+  productName: string;
+  customerName: string;
+  customerEmail: string;
+  title: string;
+  comment: string;
+  rating: number;
+  status: ReviewStatus;
+  verifiedPurchase: boolean;
+  orderNumber?: string;
+  adminResponse?: string;
+  respondedAt?: string;
+  moderatedAt?: string;
+  moderatedByEmail?: string;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AdminReviewsResponse = {
+  items: AdminReview[];
+  summary: Record<"all" | ReviewStatus, number> & { average: number };
+  pagination: { page: number; limit: number; total: number; pages: number };
 };
 
 export type ShippingZone = {
@@ -325,6 +392,91 @@ export type PromotionsResponse = {
   summary: Record<PromotionStatus, number> & { total: number; totalUses: number };
 };
 
+export type InventoryItem = {
+  _id: string;
+  title: string;
+  slug: string;
+  sku: string;
+  category: string;
+  status: "active" | "draft" | "archived";
+  featuredImage?: { url?: string; alt?: string };
+  price: number;
+  costPrice?: number;
+  stock: number;
+  reserved: number;
+  available: number;
+  reorderPoint: number;
+  incoming: number;
+  warehouse: string;
+  updatedAt: string;
+};
+
+export type InventorySummary = {
+  products: number;
+  onHand: number;
+  reserved: number;
+  available: number;
+  incoming: number;
+  lowStock: number;
+  outOfStock: number;
+  stockValue: number;
+};
+
+export type InventoryResponse = {
+  items: InventoryItem[];
+  summary: InventorySummary;
+  filters: { categories: string[]; warehouses: string[] };
+  pagination: { page: number; limit: number; total: number; pages: number };
+};
+
+export type InventoryMovement = {
+  _id: string;
+  productId: string;
+  productTitle: string;
+  sku: string;
+  type: "receive" | "adjustment" | "return" | "damage" | "correction" | "settings" | "reservation" | "release" | "fulfilment";
+  quantityChange: number;
+  stockBefore: number;
+  stockAfter: number;
+  reservedBefore: number;
+  reservedAfter: number;
+  incomingBefore: number;
+  incomingAfter: number;
+  reason: string;
+  reference: string;
+  warehouse: string;
+  changedByEmail: string;
+  createdAt: string;
+};
+
+export type InventorySale = {
+  _id: string;
+  orderNumber: string;
+  orderDate: string;
+  deliveredAt?: string;
+  paymentStatus: string;
+  customerName: string;
+  productId: string;
+  product: string;
+  sku: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+  selectedColor?: string;
+  selectedSize?: string;
+};
+
+export type InventoryExport = {
+  generatedAt: string;
+  inventory: InventoryItem[];
+  movements: InventoryMovement[];
+  sales: InventorySale[];
+};
+
+export function getInventoryExport(params = "") {
+  return api.get<InventoryExport>(`/catalog/inventory/export?${params}`);
+}
+
 export function useLogin() {
   return useMutation({
     mutationFn: authApi.login,
@@ -355,10 +507,74 @@ export function useAdminProducts(params = "") {
   });
 }
 
+export function useAdminReviews(params = "") {
+  return useQuery({
+    queryKey: ["admin-reviews", params],
+    queryFn: () => api.get<AdminReviewsResponse>(`/reviews?${params}`),
+    placeholderData: (previous) => previous,
+  });
+}
+
+export function useUpdateReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: { status?: ReviewStatus; adminResponse?: string } }) => api.patch<AdminReview>(`/reviews/${id}`, payload),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-reviews"] }); queryClient.invalidateQueries({ queryKey: ["admin-products"] }); },
+  });
+}
+
+export function useDeleteReview() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (id: string) => api.delete<{ id: string }>(`/reviews/${id}`),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-reviews"] }); queryClient.invalidateQueries({ queryKey: ["admin-products"] }); },
+  });
+}
+
+export function useInventory(params = "") {
+  return useQuery({
+    queryKey: ["inventory", params],
+    queryFn: () => api.get<InventoryResponse>(`/catalog/inventory?${params}`),
+    placeholderData: (previous) => previous,
+  });
+}
+
+export function useAdjustInventory() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: { type: InventoryMovement["type"]; quantityChange?: number; stock?: number; incoming?: number; reorderPoint?: number; warehouse?: string; receiveFromIncoming?: boolean; reason: string; reference?: string } }) =>
+      api.patch<{ product: unknown; movement: InventoryMovement }>(`/catalog/inventory/${id}/adjust`, payload),
+    onSuccess: (_, variables) => {
+      queryClient.invalidateQueries({ queryKey: ["inventory"] });
+      queryClient.invalidateQueries({ queryKey: ["inventory-movements", variables.id] });
+      queryClient.invalidateQueries({ queryKey: ["admin-products"] });
+      queryClient.invalidateQueries({ queryKey: ["admin-product", variables.id] });
+    },
+  });
+}
+
+export function useInventoryMovements(id?: string) {
+  return useQuery({
+    queryKey: ["inventory-movements", id],
+    queryFn: () => api.get<InventoryMovement[]>(`/catalog/inventory/${id}/movements`),
+    enabled: Boolean(id),
+  });
+}
+
 export function useAdminOrders(params = "") {
   return useQuery({
     queryKey: ["admin-orders", params],
     queryFn: () => api.get<AdminOrdersResponse>(`/orders?${params}`),
+    placeholderData: (previous) => previous,
+  });
+}
+
+export function useDashboardOverview({ days = 30, start, end }: { days?: number; start?: string; end?: string } = {}) {
+  const params = new URLSearchParams({ days: String(days) });
+  if (start && end) { params.set("start", start); params.set("end", end); }
+  return useQuery({
+    queryKey: ["dashboard-overview", days, start, end],
+    queryFn: () => api.get<DashboardOverview>(`/orders/dashboard?${params}`),
     placeholderData: (previous) => previous,
   });
 }
@@ -369,6 +585,26 @@ export function useUpdateAdminOrder() {
     mutationFn: ({ id, payload }: { id: string; payload: Partial<AdminOrder> & { statusNote?: string } }) =>
       api.patch<AdminOrder>(`/orders/${id}`, payload),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-orders"] }),
+  });
+}
+
+export function useAdminReturns(params = "") {
+  return useQuery({ queryKey: ["admin-returns", params], queryFn: () => api.get<AdminReturnsResponse>(`/returns?${params}`), placeholderData: (previous) => previous });
+}
+
+export function useCreateReturn() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: { orderId: string; items: Array<{ orderItemId: string; quantity: number }>; reason: ReturnReason; details: string; refundAmount: number; internalNote?: string; policyOverride?: boolean }) => api.post<AdminReturn>("/returns", payload),
+    onSuccess: () => queryClient.invalidateQueries({ queryKey: ["admin-returns"] }),
+  });
+}
+
+export function useUpdateReturn() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: ({ id, payload }: { id: string; payload: { status?: ReturnStatus; note?: string; internalNote?: string; carrier?: string; trackingNumber?: string; refundMethod?: "cash" | "bank_transfer" | "original_payment" | "store_credit"; refundReference?: string; restockQuantities?: Array<{ orderItemId: string; quantity: number }> } }) => api.patch<AdminReturn>(`/returns/${id}`, payload),
+    onSuccess: () => { queryClient.invalidateQueries({ queryKey: ["admin-returns"] }); queryClient.invalidateQueries({ queryKey: ["admin-orders"] }); queryClient.invalidateQueries({ queryKey: ["inventory"] }); },
   });
 }
 
@@ -498,14 +734,14 @@ export function useSaveHeroSettings() {
   });
 }
 
-export function useSaveHomepageSections() {
+export function useSaveFooter() {
   const queryClient = useQueryClient();
   return useMutation({
-    mutationFn: (payload: { sections: AdminHomepageSection[] }) =>
-      api.put<AdminHomepageSection[]>("/storefront/admin/homepage-sections", payload),
-    onSuccess: (homepageSections) => {
+    mutationFn: (payload: FooterContent) =>
+      api.put<FooterContent>("/storefront/admin/footer", payload),
+    onSuccess: (footer) => {
       queryClient.setQueryData<StorefrontContentResponse>(["admin-storefront-content"], (current) =>
-        current ? { ...current, homepageSections } : current
+        current ? { ...current, footer } : current
       );
     },
   });
