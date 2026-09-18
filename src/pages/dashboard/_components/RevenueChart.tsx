@@ -15,7 +15,8 @@ import type { RevenuePoint } from "@/pages/dashboard/_components/types";
 
 interface RevenueChartProps {
   data: RevenuePoint[];
-  range: number;
+  /** `null` means a custom date interval is currently selected. */
+  range: number | null;
   onRangeChange: (days: number) => void;
 }
 
