@@ -2,9 +2,9 @@
 
 import { useEffect } from "react";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
-import { Loader2, ShieldCheck } from "lucide-react";
+import { AlertCircle, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
 import { useMe } from "@/lib/api/queries";
-import { authApi } from "@/lib/api/client";
+import { ApiClientError, authApi } from "@/lib/api/client";
 import { useAuthStore } from "@/lib/stores/auth-store";
 
 export default function ProtectedRoute() {
@@ -14,6 +14,7 @@ export default function ProtectedRoute() {
   const setUser = useAuthStore((state) => state.setUser);
   const clearSession = useAuthStore((state) => state.clearSession);
   const me = useMe(Boolean(accessToken));
+  const unauthorized = me.error instanceof ApiClientError && (me.error.status === 401 || me.error.status === 403);
 
   useEffect(() => {
     function syncToken(event: Event) {
@@ -35,14 +36,31 @@ export default function ProtectedRoute() {
   }, [me.data, setUser]);
 
   useEffect(() => {
-    if (me.isError) {
+    if (unauthorized) {
       authApi.clearToken();
       clearSession();
     }
-  }, [clearSession, me.isError]);
+  }, [clearSession, unauthorized]);
 
   if (!accessToken) {
     return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  if (me.isError && !unauthorized) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-slate-50 p-6">
+        <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-6 text-center shadow-sm">
+          <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-50 text-amber-700">
+            <AlertCircle className="h-5 w-5" />
+          </div>
+          <p className="mt-4 font-semibold text-slate-950">Admin service is temporarily unavailable</p>
+          <p className="mt-2 text-sm leading-6 text-slate-500">Your session is still saved. Check the database connection and try again.</p>
+          <button type="button" onClick={() => me.refetch()} className="action-primary mt-5">
+            <RefreshCw className="h-4 w-4" />Try again
+          </button>
+        </div>
+      </div>
+    );
   }
 
   if (me.isLoading || !me.data) {

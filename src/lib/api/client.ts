@@ -4,6 +4,16 @@ export type ApiResponse<T> = {
   message?: string;
 };
 
+export class ApiClientError extends Error {
+  readonly status: number;
+
+  constructor(message: string, status: number) {
+    super(message);
+    this.name = "ApiClientError";
+    this.status = status;
+  }
+}
+
 const API_URL = import.meta.env.VITE_API_URL ?? "http://localhost:5000/api/v1";
 const TOKEN_KEY = "sosbd_admin_access_token";
 
@@ -34,21 +44,32 @@ function clearToken() {
   window.dispatchEvent(new CustomEvent("sosbd-auth-token", { detail: null }));
 }
 
-async function refreshAccessToken() {
+let refreshPromise: Promise<string> | null = null;
+
+async function performRefresh() {
   const response = await fetch(`${API_URL}/auth/refresh`, {
     method: "POST",
     credentials: "include",
   });
   const payload = (await response.json().catch(() => null)) as ApiResponse<AuthSession> | null;
   if (!response.ok || !payload?.success) {
-    clearToken();
-    throw new Error(payload?.message ?? "Session expired");
+    if (response.status === 401 || response.status === 403) clearToken();
+    throw new ApiClientError(payload?.message ?? "Session expired", response.status);
   }
   setToken(payload.data.accessToken);
   return payload.data.accessToken;
 }
 
-async function request<T>(path: string, init: RequestInit = {}) {
+function refreshAccessToken() {
+  if (!refreshPromise) {
+    refreshPromise = performRefresh().finally(() => {
+      refreshPromise = null;
+    });
+  }
+  return refreshPromise;
+}
+
+async function request<T>(path: string, init: RequestInit = {}, allowRefresh = true) {
   const token = getToken();
   const response = await fetch(`${API_URL}${path}`, {
     ...init,
@@ -66,7 +87,8 @@ async function request<T>(path: string, init: RequestInit = {}) {
       response.status === 401 &&
       !path.startsWith("/auth/login") &&
       !path.startsWith("/auth/refresh") &&
-      token;
+      token &&
+      allowRefresh;
 
     if (canRefresh) {
       const nextToken = await refreshAccessToken();
@@ -76,10 +98,10 @@ async function request<T>(path: string, init: RequestInit = {}) {
           ...init.headers,
           Authorization: `Bearer ${nextToken}`,
         },
-      });
+      }, false);
     }
 
-    throw new Error(payload?.message ?? `API request failed: ${response.status}`);
+    throw new ApiClientError(payload?.message ?? `API request failed: ${response.status}`, response.status);
   }
   return payload.data;
 }

@@ -11,6 +11,7 @@ import {
   Search,
   Star,
   Trash2,
+  Truck,
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
@@ -50,6 +51,7 @@ type ApiProduct = {
   };
   status: ProductStatus;
   featured?: boolean;
+  freeShipping?: boolean;
 };
 
 type ProductResponse = {
@@ -146,16 +148,13 @@ export default function ProductsPage() {
   const activeCount = products.filter((product) => product.status === "active").length;
   const draftCount = products.filter((product) => product.status === "draft").length;
   const lowStockCount = products.filter((product) => getStockStatus(product) !== "In Stock").length;
-  const averageRating =
-    products.length > 0
-      ? products.reduce((sum, product) => sum + (product.rating ?? 0), 0) / products.length
-      : 0;
+  const freeShippingCount = products.filter((product) => product.freeShipping).length;
 
   const stats: { label: string; value: string | number; icon: LucideIcon; color: string }[] = [
     { label: "Active products", value: activeCount, icon: CheckCircle2, color: "text-emerald-600" },
     { label: "Drafts", value: draftCount, icon: Clock3, color: "text-slate-600" },
     { label: "Stock alerts", value: lowStockCount, icon: AlertTriangle, color: "text-amber-600" },
-    { label: "Avg rating", value: averageRating.toFixed(1), icon: Star, color: "text-yellow-500" },
+    { label: "Free shipping", value: freeShippingCount, icon: Truck, color: "text-emerald-600" },
   ];
 
   const toggleSelect = (id: string) => {
@@ -337,6 +336,12 @@ export default function ProductsPage() {
                             <div>
                               <p className="font-semibold text-slate-950">{product.title}</p>
                               <p className="mt-0.5 font-mono text-xs text-slate-400">{product.sku}</p>
+                              {product.freeShipping && (
+                                <span className="mt-1 inline-flex items-center gap-1 rounded-full bg-emerald-50 px-2 py-0.5 text-[11px] font-semibold text-emerald-700">
+                                  <Truck className="h-3 w-3" />
+                                  Free shipping
+                                </span>
+                              )}
                             </div>
                           </div>
                         </td>

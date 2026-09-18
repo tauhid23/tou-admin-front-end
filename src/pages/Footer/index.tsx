@@ -1,15 +1,18 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  Check,
+  AlertCircle,
   CreditCard,
   Eye,
   GripVertical,
   Link as LinkIcon,
+  Loader2,
   Plus,
   Save,
   Trash2,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { type FooterContent, useSaveFooter, useStorefrontContent } from "@/lib/api/queries";
+import { useToast } from "@/lib/providers/ToastProvider";
 
 type FooterLink = {
   id: string;
@@ -105,11 +108,54 @@ export default function FooterManager() {
     "Connect with us and stay updated on our latest collections and offers."
   );
   const [payments, setPayments] = useState(paymentMethods);
-  const [saved, setSaved] = useState(false);
+  const [newPayment, setNewPayment] = useState("");
+  const content = useStorefrontContent();
+  const saveFooter = useSaveFooter();
+  const toast = useToast();
 
-  const save = () => {
-    setSaved(true);
-    window.setTimeout(() => setSaved(false), 2200);
+  useEffect(() => {
+    const footer = content.data?.footer;
+    if (!footer) return;
+    setColumns(footer.columns.map((column, columnIndex) => ({
+      id: column._id ?? `column-${columnIndex}`,
+      title: column.title,
+      visible: column.visible,
+      links: column.links.map((link, linkIndex) => ({
+        id: link._id ?? `column-${columnIndex}-link-${linkIndex}`,
+        label: link.label,
+        href: link.href,
+        visible: link.visible,
+      })),
+    })));
+    setSocials(footer.socials.map((social, index) => ({
+      id: social._id ?? `social-${index}`,
+      label: social.label,
+      href: social.href,
+      visible: social.visible,
+    })));
+    setCopyright(footer.copyright);
+    setSocialDescription(footer.socialDescription);
+    setPayments(footer.payments);
+  }, [content.data?.footer]);
+
+  const save = async () => {
+    const payload: FooterContent = {
+      columns: columns.map(({ title, visible, links }) => ({
+        title,
+        visible,
+        links: links.map(({ label, href, visible: linkVisible }) => ({ label, href, visible: linkVisible })),
+      })),
+      socials: socials.map(({ label, href, visible }) => ({ label, href, visible })),
+      socialDescription,
+      payments,
+      copyright,
+    };
+    try {
+      await saveFooter.mutateAsync(payload);
+      toast.success("Footer published", "The storefront footer has been updated.");
+    } catch (error) {
+      toast.error("Footer could not be saved", error instanceof Error ? error.message : "Please try again.");
+    }
   };
 
   const updateColumn = (columnId: string, value: Partial<FooterColumn>) => {
@@ -149,6 +195,17 @@ export default function FooterManager() {
     );
   };
 
+  const addColumn = () => {
+    setColumns((current) => [
+      ...current,
+      { id: `column-${Date.now()}`, title: "New Column", visible: true, links: [] },
+    ]);
+  };
+
+  const removeColumn = (columnId: string) => {
+    setColumns((current) => current.filter((column) => column.id !== columnId));
+  };
+
   const removeLink = (columnId: string, linkId: string) => {
     setColumns((current) =>
       current.map((column) =>
@@ -165,9 +222,35 @@ export default function FooterManager() {
     );
   };
 
+  const addSocial = () => {
+    setSocials((current) => [
+      ...current,
+      { id: `social-${Date.now()}`, label: "New profile", href: "#", visible: true },
+    ]);
+  };
+
+  const removeSocial = (id: string) => {
+    setSocials((current) => current.filter((social) => social.id !== id));
+  };
+
   const removePayment = (method: string) => {
     setPayments((current) => current.filter((item) => item !== method));
   };
+
+  const addPayment = () => {
+    const value = newPayment.trim();
+    if (!value || payments.some((payment) => payment.toLowerCase() === value.toLowerCase())) return;
+    setPayments((current) => [...current, value]);
+    setNewPayment("");
+  };
+
+  if (content.isLoading) {
+    return <div className="flex min-h-80 items-center justify-center rounded-2xl border border-slate-200 bg-white"><Loader2 className="h-7 w-7 animate-spin text-slate-400" /></div>;
+  }
+
+  if (content.isError) {
+    return <div className="flex min-h-80 flex-col items-center justify-center rounded-2xl border border-rose-200 bg-white p-6 text-center"><AlertCircle className="h-8 w-8 text-rose-500" /><h1 className="mt-3 font-bold text-slate-950">Footer settings could not be loaded</h1><p className="mt-1 text-sm text-slate-500">{content.error instanceof Error ? content.error.message : "Please try again."}</p><button type="button" onClick={() => content.refetch()} className="action-secondary mt-4">Try again</button></div>;
+  }
 
   return (
     <section className="space-y-6">
@@ -186,15 +269,9 @@ export default function FooterManager() {
             </p>
           </div>
           <div className="flex flex-wrap gap-3">
-            {saved && (
-              <span className="inline-flex h-11 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-sm font-semibold text-emerald-700">
-                <Check className="h-4 w-4" />
-                Saved
-              </span>
-            )}
-            <button onClick={save} className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-slate-800">
-              <Save className="h-4 w-4" />
-              Save footer
+            <button type="button" onClick={save} disabled={saveFooter.isPending} className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-60">
+              {saveFooter.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {saveFooter.isPending ? "Saving…" : "Save footer"}
             </button>
           </div>
         </div>
@@ -212,6 +289,7 @@ export default function FooterManager() {
                     onChange={(event) => updateColumn(column.id, { title: event.target.value })}
                     className="min-w-0 flex-1 border-0 bg-transparent text-base font-bold text-slate-950 outline-none"
                   />
+                  <button type="button" onClick={() => removeColumn(column.id)} className="text-slate-400 hover:text-rose-500" aria-label={`Delete ${column.title} column`}><Trash2 className="h-4 w-4" /></button>
                   <input
                     type="checkbox"
                     checked={column.visible}
@@ -255,6 +333,7 @@ export default function FooterManager() {
                 </button>
               </div>
             ))}
+            {columns.length < 8 && <button type="button" onClick={addColumn} className="flex min-h-40 items-center justify-center gap-2 rounded-2xl border border-dashed border-slate-300 bg-white text-sm font-semibold text-slate-600 hover:border-slate-400 hover:bg-slate-50"><Plus className="h-4 w-4" />Add column</button>}
           </div>
 
           <div className="grid gap-6 lg:grid-cols-2">
@@ -267,16 +346,18 @@ export default function FooterManager() {
               />
               <div className="mt-4 space-y-3">
                 {socials.map((social) => (
-                  <div key={social.id} className="grid grid-cols-[34px_1fr_1fr_24px] items-center gap-2">
+                  <div key={social.id} className="grid grid-cols-[34px_1fr_1fr_24px_24px] items-center gap-2">
                     <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-600">
                       {social.label.slice(0, 2).toUpperCase()}
                     </div>
                     <input value={social.label} onChange={(event) => updateSocial(social.id, { label: event.target.value })} className={inputClass} />
                     <input value={social.href} onChange={(event) => updateSocial(social.id, { href: event.target.value })} className={cn(inputClass, "font-mono text-xs")} />
                     <input type="checkbox" checked={social.visible} onChange={(event) => updateSocial(social.id, { visible: event.target.checked })} />
+                    <button type="button" onClick={() => removeSocial(social.id)} className="text-slate-400 hover:text-rose-500" aria-label={`Remove ${social.label}`}><Trash2 className="h-4 w-4" /></button>
                   </div>
                 ))}
               </div>
+              {socials.length < 12 && <button type="button" onClick={addSocial} className="mt-4 inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"><Plus className="h-4 w-4" />Add social profile</button>}
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
@@ -297,6 +378,10 @@ export default function FooterManager() {
                       </button>
                     </span>
                   ))}
+                </div>
+                <div className="mt-3 flex gap-2">
+                  <input value={newPayment} onChange={(event) => setNewPayment(event.target.value)} onKeyDown={(event) => { if (event.key === "Enter") { event.preventDefault(); addPayment(); } }} className={inputClass} placeholder="Add payment badge" />
+                  <button type="button" onClick={addPayment} className="action-secondary shrink-0"><Plus className="h-4 w-4" />Add</button>
                 </div>
               </div>
             </div>

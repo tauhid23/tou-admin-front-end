@@ -143,7 +143,7 @@ export default function CategoriesPage() {
     setForm((current) => ({
       ...current,
       name,
-      slug: current.slug ? current.slug : slugify(name),
+      slug: slugify(name),
     }));
   };
 
@@ -394,8 +394,9 @@ export default function CategoriesPage() {
                   <input
                     required
                     value={form.slug}
-                    onChange={(event) => setForm((current) => ({ ...current, slug: event.target.value }))}
-                    className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 font-mono text-sm outline-none focus:border-slate-400"
+                    readOnly
+                    aria-readonly="true"
+                    className="mt-2 h-11 w-full cursor-not-allowed rounded-xl border border-slate-200 bg-slate-50 px-3 font-mono text-sm text-slate-500 outline-none"
                     placeholder="beauty"
                   />
                 </label>

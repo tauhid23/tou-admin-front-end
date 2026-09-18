@@ -15,6 +15,8 @@ import type { RevenuePoint } from "@/pages/dashboard/_components/types";
 
 interface RevenueChartProps {
   data: RevenuePoint[];
+  range: number;
+  onRangeChange: (days: number) => void;
 }
 
 type Metric = "revenue" | "orders";
@@ -24,7 +26,7 @@ const metrics: { key: Metric; label: string; prefix?: string }[] = [
   { key: "orders",  label: "Orders" },
 ];
 
-const ranges = ["2W", "1M", "3M", "6M", "1Y"] as const;
+const ranges = [{ label: "2W", days: 14 }, { label: "1M", days: 30 }, { label: "3M", days: 90 }, { label: "6M", days: 180 }, { label: "1Y", days: 365 }];
 
 function CustomTooltip({ active, payload, label, metric }: any) {
   if (!active || !payload?.length) return null;
@@ -40,9 +42,8 @@ function CustomTooltip({ active, payload, label, metric }: any) {
   );
 }
 
-export default function RevenueChart({ data }: RevenueChartProps) {
+export default function RevenueChart({ data, range, onRangeChange }: RevenueChartProps) {
   const [metric, setMetric] = useState<Metric>("revenue");
-  const [range, setRange] = useState<string>("1M");
 
   return (
     <div className="bg-white rounded-2xl border border-neutral-100 shadow-sm p-5">
@@ -76,16 +77,16 @@ export default function RevenueChart({ data }: RevenueChartProps) {
           <div className="flex items-center bg-neutral-100 rounded-lg p-0.5">
             {ranges.map((r) => (
               <button
-                key={r}
-                onClick={() => setRange(r)}
+                key={r.days}
+                onClick={() => onRangeChange(r.days)}
                 className={cn(
                   "text-[12px] font-medium px-2.5 py-1.5 rounded-md transition-all",
-                  range === r
+                  range === r.days
                     ? "bg-white text-neutral-900 shadow-sm"
                     : "text-neutral-500 hover:text-neutral-700"
                 )}
               >
-                {r}
+                {r.label}
               </button>
             ))}
           </div>

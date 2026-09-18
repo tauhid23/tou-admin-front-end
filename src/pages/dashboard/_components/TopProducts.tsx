@@ -1,7 +1,7 @@
 // src/pages/dashboard/components/TopProducts.tsx
 
-import { ArrowUpRight, ArrowDownRight, ArrowRight } from "lucide-react";
-import { cn } from "@/lib/utils";
+import { ArrowRight } from "lucide-react";
+import { Link } from "react-router-dom";
 import type { TopProduct } from "@/pages/dashboard/_components/types";
 
 interface TopProductsProps {
@@ -17,16 +17,15 @@ export default function TopProducts({ products }: TopProductsProps) {
           <h2 className="text-[15px] font-semibold text-neutral-900">Top Products</h2>
           <p className="text-[12px] text-neutral-400 mt-0.5">By revenue this month</p>
         </div>
-        <button className="flex items-center gap-1 text-[12px] font-medium text-neutral-500 hover:text-neutral-900 transition-colors">
+        <Link to="/products" className="flex items-center gap-1 text-[12px] font-medium text-neutral-500 hover:text-neutral-900 transition-colors">
           View all <ArrowRight className="w-3.5 h-3.5" />
-        </button>
+        </Link>
       </div>
 
       {/* List */}
       <div className="p-5 space-y-5">
         {products.map((product, i) => {
           const pct = Math.round((product.revenue / product.maxRevenue) * 100);
-          const isUp = product.growth >= 0;
 
           return (
             <div key={product.id} className="group">
@@ -49,19 +48,7 @@ export default function TopProducts({ products }: TopProductsProps) {
                   <p className="text-[13px] font-semibold text-neutral-900">
                     ${product.revenue.toLocaleString()}
                   </p>
-                  <span
-                    className={cn(
-                      "flex items-center justify-end gap-0.5 text-[11px] font-semibold",
-                      isUp ? "text-green-600" : "text-red-500"
-                    )}
-                  >
-                    {isUp ? (
-                      <ArrowUpRight className="w-3 h-3" />
-                    ) : (
-                      <ArrowDownRight className="w-3 h-3" />
-                    )}
-                    {Math.abs(product.growth)}%
-                  </span>
+                  <span className="text-[11px] text-neutral-400">{product.units} sold</span>
                 </div>
               </div>
 
