@@ -68,6 +68,7 @@ export type StorefrontContentResponse = {
   aboutPage?: AboutPageContent & { _id?: string; updatedAt?: string };
   banners?: AdminHeroBanner[];
   heroSettings?: HeroSettings;
+  branding?: SiteBranding;
   navigation?: unknown;
   footer?: FooterContent;
 };
@@ -88,6 +89,19 @@ export type FooterContent = {
 };
 
 export type StorefrontAsset = { url: string; publicId: string; alt: string };
+export type SiteBranding = {
+  _id?: string;
+  updatedAt?: string;
+  siteTitle: string;
+  logo: StorefrontAsset;
+  favicons: {
+    browser16: StorefrontAsset;
+    browser32: StorefrontAsset;
+    apple180: StorefrontAsset;
+    android192: StorefrontAsset;
+  };
+};
+
 export type AdminHeroBanner = {
   _id?: string;
   title: string;
@@ -729,6 +743,19 @@ export function useSaveHeroSettings() {
     onSuccess: (heroSettings) => {
       queryClient.setQueryData<StorefrontContentResponse>(["admin-storefront-content"], (current) =>
         current ? { ...current, heroSettings } : current
+      );
+    },
+  });
+}
+
+export function useSaveBranding() {
+  const queryClient = useQueryClient();
+  return useMutation({
+    mutationFn: (payload: SiteBranding) =>
+      api.put<SiteBranding>("/storefront/admin/branding", payload),
+    onSuccess: (branding) => {
+      queryClient.setQueryData<StorefrontContentResponse>(["admin-storefront-content"], (current) =>
+        current ? { ...current, branding } : current
       );
     },
   });

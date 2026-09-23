@@ -37,7 +37,9 @@ type HeroSlide = {
   ctaLabel: string;
   ctaUrl: string;
   image: string;
+  imagePublicId: string;
   mobileImage: string;
+  mobileImagePublicId: string;
   altText: string;
   searchPlaceholder: string;
   popularTags: string[];
@@ -61,8 +63,10 @@ const defaultSlides: HeroSlide[] = [
     ctaUrl: "/collections",
     image:
       "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=1600&q=80",
+    imagePublicId: "",
     mobileImage:
       "https://images.unsplash.com/photo-1483985988355-763728e1935b?auto=format&fit=crop&w=900&q=80",
+    mobileImagePublicId: "",
     altText: "Fashion sourcing storefront hero banner",
     searchPlaceholder: "tshirt",
     popularTags: ["knitting yarn", "yarn", "cotton yarn", "crochet yarn", "polyester knitting yarn"],
@@ -84,8 +88,10 @@ const defaultSlides: HeroSlide[] = [
     ctaUrl: "/collections",
     image:
       "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=1600&q=80",
+    imagePublicId: "",
     mobileImage:
       "https://images.unsplash.com/photo-1523275335684-37898b6baf30?auto=format&fit=crop&w=900&q=80",
+    mobileImagePublicId: "",
     altText: "New arrival products arranged for ecommerce campaign",
     searchPlaceholder: "wireless accessories",
     popularTags: ["audio", "chargers", "smart watches", "cables"],
@@ -107,8 +113,10 @@ const defaultSlides: HeroSlide[] = [
     ctaUrl: "/collections/home-textile",
     image:
       "https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=1600&q=80",
+    imagePublicId: "",
     mobileImage:
       "https://images.unsplash.com/photo-1503602642458-232111445657?auto=format&fit=crop&w=900&q=80",
+    mobileImagePublicId: "",
     altText: "Home textile products on a modern interior shelf",
     searchPlaceholder: "bedding",
     popularTags: ["bedding", "curtains", "towels", "cushions"],
@@ -162,7 +170,7 @@ export default function BannersSlidersTwo() {
   useEffect(() => {
     if (!content.data) return;
     const banners = content.data.banners ?? [];
-    if (content.data.heroSettings) setSettings({ ...content.data.heroSettings, duration: 5 });
+    if (content.data.heroSettings) setSettings(content.data.heroSettings);
     if (!banners.length) return;
     const hydrated = banners.map((banner, index): HeroSlide => ({
       id: banner._id ?? `new-${index}`,
@@ -172,7 +180,9 @@ export default function BannersSlidersTwo() {
       ctaLabel: banner.ctaLabel,
       ctaUrl: banner.ctaUrl,
       image: banner.desktopImage.url,
+      imagePublicId: banner.desktopImage.publicId,
       mobileImage: banner.mobileImage?.url ?? "",
+      mobileImagePublicId: banner.mobileImage?.publicId ?? "",
       altText: banner.desktopImage.alt,
       searchPlaceholder: banner.searchPlaceholder,
       popularTags: banner.popularTags ?? [],
@@ -227,8 +237,8 @@ export default function BannersSlidersTwo() {
       eyebrow: slide.eyebrow,
       ctaLabel: slide.ctaLabel,
       ctaUrl: slide.ctaUrl,
-      desktopImage: { url: slide.image, publicId: "", alt: slide.altText },
-      mobileImage: { url: slide.mobileImage, publicId: "", alt: slide.altText },
+      desktopImage: { url: slide.image, publicId: slide.imagePublicId, alt: slide.altText },
+      mobileImage: { url: slide.mobileImage, publicId: slide.mobileImagePublicId, alt: slide.altText },
       searchPlaceholder: slide.searchPlaceholder,
       popularTags: slide.popularTags,
       textPosition: slide.position,
@@ -243,7 +253,7 @@ export default function BannersSlidersTwo() {
     try {
       const [savedBanners] = await Promise.all([
         saveBanners.mutateAsync({ banners }),
-        saveHeroSettings.mutateAsync({ ...settings, duration: 5 }),
+        saveHeroSettings.mutateAsync(settings),
       ]);
       setSlides(savedBanners.map((banner, index) => ({ ...orderedSlides[index], id: banner._id ?? orderedSlides[index].id })));
       setSaved(true);
@@ -268,9 +278,29 @@ export default function BannersSlidersTwo() {
   ) => {
     const file = event.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      toast.error("Unsupported file", "Choose an image file.");
+      event.target.value = "";
+      return;
+    }
+    if (file.size > 8 * 1024 * 1024) {
+      toast.error("Image is too large", "Choose an image smaller than 8 MB.");
+      event.target.value = "";
+      return;
+    }
     try {
       const [asset] = await uploadImages.mutateAsync({ files: [file], folder: "sosbd/storefront/hero" });
-      if (asset) updateSlide(field, asset.url);
+      if (asset) {
+        const targetId = selectedSlide.id;
+        setSlides((current) => current.map((slide) => slide.id === targetId
+          ? {
+              ...slide,
+              [field]: asset.url,
+              [field === "image" ? "imagePublicId" : "mobileImagePublicId"]: asset.publicId,
+            }
+          : slide));
+        toast.success("Image uploaded", "Save all changes to publish it.");
+      }
     } catch (error) {
       toast.error("Image upload failed", error instanceof Error ? error.message : "Try another image.");
     } finally {
@@ -288,7 +318,9 @@ export default function BannersSlidersTwo() {
       ctaUrl: "/collections",
       image:
         "https://images.unsplash.com/photo-1556742049-0cfed4f6a45d?auto=format&fit=crop&w=1600&q=80",
+      imagePublicId: "",
       mobileImage: "",
+      mobileImagePublicId: "",
       altText: "Storefront campaign banner",
       searchPlaceholder: "Search products",
       popularTags: [],
@@ -386,7 +418,7 @@ export default function BannersSlidersTwo() {
             ["Total slides", slides.length],
             ["Live now", liveCount],
             ["Scheduled", scheduledCount],
-            ["Autoplay", settings.autoplay ? "5s" : "Off"],
+            ["Autoplay", settings.autoplay ? `${settings.duration}s` : "Off"],
           ].map(([label, value]) => (
             <div key={label} className="rounded-2xl border border-slate-100 bg-slate-50 p-4">
               <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">{label}</p>
@@ -557,9 +589,9 @@ export default function BannersSlidersTwo() {
                       <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl bg-slate-950 px-4 text-sm font-semibold text-white hover:bg-slate-800">
                         <ImagePlus className="h-4 w-4" />
                         Choose desktop image
-                        <input type="file" accept="image/*" className="hidden" onChange={(event) => uploadSlideImage(event, "image")} />
+                        <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" disabled={uploadImages.isPending} onChange={(event) => uploadSlideImage(event, "image")} />
                       </label>
-                      <p className="mt-2 text-xs text-slate-500">Upload the hero banner image used on desktop.</p>
+                      <p className="mt-2 text-xs text-slate-500">JPEG, PNG, WebP, or AVIF up to 8 MB. Use a wide image at least 1600px across.</p>
                     </div>
                   </div>
                 </label>
@@ -571,9 +603,9 @@ export default function BannersSlidersTwo() {
                       <label className="inline-flex h-10 cursor-pointer items-center gap-2 rounded-xl border border-slate-200 bg-white px-4 text-sm font-semibold text-slate-700 hover:bg-slate-50">
                         <ImagePlus className="h-4 w-4" />
                         Choose mobile image
-                        <input type="file" accept="image/*" className="hidden" onChange={(event) => uploadSlideImage(event, "mobileImage")} />
+                        <input type="file" accept="image/jpeg,image/png,image/webp,image/avif" className="hidden" disabled={uploadImages.isPending} onChange={(event) => uploadSlideImage(event, "mobileImage")} />
                       </label>
-                      <p className="mt-2 text-xs text-slate-500">Optional portrait-safe crop for phones.</p>
+                      <p className="mt-2 text-xs text-slate-500">Optional portrait-safe image for phones, up to 8 MB.</p>
                     </div>
                   </div>
                 </label>
@@ -696,9 +728,14 @@ export default function BannersSlidersTwo() {
                     <span className="text-xs font-semibold text-slate-500">Interval (seconds)</span>
                     <input
                       type="number"
-                      value={5}
-                      disabled
-                      className="mt-1 h-9 w-full rounded-lg border border-slate-200 bg-slate-100 px-2 text-sm text-slate-500"
+                      min={2}
+                      max={30}
+                      value={settings.duration}
+                      onChange={(event) => setSettings((current) => ({
+                        ...current,
+                        duration: Math.min(30, Math.max(2, Number(event.target.value) || 2)),
+                      }))}
+                      className="mt-1 h-9 w-full rounded-lg border border-slate-200 bg-white px-2 text-sm"
                     />
                   </label>
                   <label className="block">
