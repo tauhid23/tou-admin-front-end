@@ -1,333 +1,282 @@
-import { useState, useRef } from "react";
+import { useEffect, useRef, useState, type ChangeEvent } from "react";
 import {
-  Upload,
-  Trash2,
-  Check,
   AlertCircle,
+  Check,
   Image as ImageIcon,
+  Loader2,
   RefreshCw,
-  Info,
-  Globe,
+  Save,
+  Trash2,
+  Upload,
 } from "lucide-react";
+import {
+  useSaveBranding,
+  useStorefrontContent,
+  useUploadImages,
+  type SiteBranding,
+  type StorefrontAsset,
+} from "@/lib/api/queries";
+import { useToast } from "@/lib/providers/ToastProvider";
 
-interface Logo {
-  id: string;
-  label: string;
-  description: string;
-  recommended: string;
-  file: string | null;
-  preview: string | null;
-}
+type FaviconKey = keyof SiteBranding["favicons"];
 
-interface FaviconVariant {
-  id: string;
-  label: string;
-  size: string;
-  file: string | null;
-  preview: string | null;
-}
+const emptyAsset = (alt = ""): StorefrontAsset => ({ url: "", publicId: "", alt });
 
-const LOGO_SAMPLE = "https://upload.wikimedia.org/wikipedia/commons/thumb/a/a9/Amazon_logo.svg/2560px-Amazon_logo.svg.png";
-const FAVICON_SAMPLE = "https://www.amazon.com/favicon.ico";
-
-const initialLogo: Logo = {
-  id: "primary",
-  label: "Primary Logo",
-  description: "Main logo used across your store header",
-  recommended: "PNG or SVG • Transparent background • Minimum 300×80px",
-  file: "logo-primary.png",
-  preview: LOGO_SAMPLE,
+const defaultBranding: SiteBranding = {
+  siteTitle: "SOSBD",
+  logo: emptyAsset("SOSBD"),
+  favicons: {
+    browser16: emptyAsset(),
+    browser32: emptyAsset(),
+    apple180: emptyAsset(),
+    android192: emptyAsset(),
+  },
 };
 
-const initialFavicons: FaviconVariant[] = [
-  { id: "16", label: "Favicon (Browser Tab)", size: "16×16px", file: "favicon-16.png", preview: FAVICON_SAMPLE },
-  { id: "32", label: "Favicon (Retina)", size: "32×32px", file: null, preview: null },
-  { id: "180", label: "Apple Touch Icon", size: "180×180px", file: null, preview: null },
-  { id: "192", label: "Android Chrome", size: "192×192px", file: null, preview: null },
+const faviconOptions: Array<{ key: FaviconKey; label: string; size: string }> = [
+  { key: "browser16", label: "Browser tab", size: "16 x 16px" },
+  { key: "browser32", label: "Retina browser tab", size: "32 x 32px" },
+  { key: "apple180", label: "Apple touch icon", size: "180 x 180px" },
+  { key: "android192", label: "Android icon", size: "192 x 192px" },
 ];
 
+const acceptedImages = "image/jpeg,image/png,image/webp,image/svg+xml,image/x-icon,.ico";
+const maxFileSize = 8 * 1024 * 1024;
+
+function assetName(asset: StorefrontAsset) {
+  if (asset.publicId) return asset.publicId.split("/").pop() ?? "Uploaded image";
+  if (asset.url) return asset.url.split("/").pop()?.split("?")[0] ?? "Uploaded image";
+  return "";
+}
+
 export default function LogoFavicon() {
-  const [logo, setLogo] = useState<Logo>(initialLogo);
-  const [favicons, setFavicons] = useState<FaviconVariant[]>(initialFavicons);
-  const [altText, setAltText] = useState("My Store Logo");
-  const [siteTitle, setSiteTitle] = useState("My E-Commerce Store");
+  const content = useStorefrontContent();
+  const saveBranding = useSaveBranding();
+  const uploadImages = useUploadImages();
+  const toast = useToast();
+  const [branding, setBranding] = useState<SiteBranding>(defaultBranding);
   const [activeTab, setActiveTab] = useState<"logo" | "favicon">("logo");
+  const [uploadingTarget, setUploadingTarget] = useState<"logo" | FaviconKey | null>(null);
   const [saved, setSaved] = useState(false);
+  const logoInputRef = useRef<HTMLInputElement>(null);
+  const faviconRefs = useRef<Record<FaviconKey, HTMLInputElement | null>>({
+    browser16: null,
+    browser32: null,
+    apple180: null,
+    android192: null,
+  });
 
-  const fileInputRef = useRef<HTMLInputElement>(null);
-  const faviconRefs = useRef<Record<string, HTMLInputElement | null>>({});
+  useEffect(() => {
+    if (content.data?.branding) setBranding(content.data.branding);
+  }, [content.data?.branding]);
 
-  const handleLogoUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
+  const updateLogo = (next: Partial<StorefrontAsset>) => {
+    setBranding((current) => ({ ...current, logo: { ...current.logo, ...next } }));
+  };
 
-    const url = URL.createObjectURL(file);
-    setLogo((prev) => ({
-      ...prev,
-      file: file.name,
-      preview: url,
+  const updateFavicon = (key: FaviconKey, asset: StorefrontAsset) => {
+    setBranding((current) => ({
+      ...current,
+      favicons: { ...current.favicons, [key]: asset },
     }));
   };
 
-  const handleFaviconUpload = (id: string, e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
+  const uploadAsset = async (
+    event: ChangeEvent<HTMLInputElement>,
+    target: "logo" | FaviconKey,
+  ) => {
+    const file = event.target.files?.[0];
     if (!file) return;
+    if (!file.type.startsWith("image/") && !file.name.toLowerCase().endsWith(".ico")) {
+      toast.error("Unsupported file", "Choose a supported image file.");
+      event.target.value = "";
+      return;
+    }
+    if (file.size > maxFileSize) {
+      toast.error("Image is too large", "Choose an image smaller than 8 MB.");
+      event.target.value = "";
+      return;
+    }
 
-    const url = URL.createObjectURL(file);
-    setFavicons((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, file: file.name, preview: url } : f))
+    setUploadingTarget(target);
+    try {
+      const [uploaded] = await uploadImages.mutateAsync({
+        files: [file],
+        folder: target === "logo" ? "sosbd/storefront/branding" : "sosbd/storefront/favicons",
+      });
+      if (!uploaded) throw new Error("The upload service did not return an image.");
+
+      const asset: StorefrontAsset = {
+        url: uploaded.url,
+        publicId: uploaded.publicId,
+        alt: target === "logo" ? branding.logo.alt || branding.siteTitle : `${branding.siteTitle} icon`,
+      };
+      if (target === "logo") updateLogo(asset);
+      else updateFavicon(target, asset);
+      toast.success("Image uploaded", "Save changes to publish it on the storefront.");
+    } catch (error) {
+      toast.error("Image upload failed", error instanceof Error ? error.message : "Try another image.");
+    } finally {
+      setUploadingTarget(null);
+      event.target.value = "";
+    }
+  };
+
+  const handleSave = async () => {
+    if (!branding.siteTitle.trim()) {
+      toast.error("Site title is required");
+      return;
+    }
+    if (branding.logo.url && !branding.logo.alt.trim()) {
+      setActiveTab("logo");
+      toast.error("Logo alt text is required", "Add a short accessible description for the logo.");
+      return;
+    }
+
+    try {
+      const nextBranding = await saveBranding.mutateAsync({
+        ...branding,
+        siteTitle: branding.siteTitle.trim(),
+        logo: { ...branding.logo, alt: branding.logo.alt.trim() },
+      });
+      setBranding(nextBranding);
+      setSaved(true);
+      toast.success("Branding published", "The storefront will use the saved media on its next page load.");
+      window.setTimeout(() => setSaved(false), 2200);
+    } catch (error) {
+      toast.error("Branding could not be saved", error instanceof Error ? error.message : "Try again.");
+    }
+  };
+
+  if (content.isLoading) {
+    return (
+      <div className="flex min-h-80 items-center justify-center">
+        <Loader2 className="h-7 w-7 animate-spin text-slate-400" />
+      </div>
     );
-  };
+  }
 
-  const removeLogo = () => {
-    setLogo((prev) => ({ ...prev, file: null, preview: null }));
-  };
-
-  const removeFavicon = (id: string) => {
-    setFavicons((prev) =>
-      prev.map((f) => (f.id === id ? { ...f, file: null, preview: null } : f))
+  if (content.isError) {
+    return (
+      <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-rose-800">
+        <div className="flex items-center gap-3">
+          <AlertCircle className="h-5 w-5" />
+          <p className="text-sm font-semibold">Branding could not be loaded from the server.</p>
+        </div>
+        <button type="button" onClick={() => content.refetch()} className="mt-4 inline-flex h-10 items-center gap-2 rounded-xl bg-rose-700 px-4 text-sm font-semibold text-white">
+          <RefreshCw className="h-4 w-4" /> Retry
+        </button>
+      </div>
     );
-  };
+  }
 
-  const handleSave = () => {
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
-  };
+  const busy = uploadImages.isPending || saveBranding.isPending;
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <div className="bg-white border-b border-gray-200 px-8 py-5">
-        <div className="flex items-center justify-between">
+    <section className="space-y-6">
+      <header className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+        <div className="flex flex-col gap-5 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <p className="text-xs text-gray-400 uppercase tracking-widest mb-1 font-medium">
-              Storefront / Appearance
-            </p>
-            <h1 className="text-2xl font-bold text-gray-900">Logo & Favicon</h1>
+            <p className="text-xs font-semibold uppercase tracking-wide text-slate-400">Storefront / Appearance</p>
+            <h1 className="mt-1 text-2xl font-bold text-slate-950 md:text-3xl">Logo & Favicon</h1>
+            <p className="mt-2 text-sm text-slate-500">Manage the brand media used by the storefront header and browser.</p>
           </div>
           <div className="flex items-center gap-3">
-            {saved && (
-              <span className="flex items-center gap-1.5 text-sm text-emerald-600 font-medium bg-emerald-50 px-4 py-2 rounded-2xl border border-emerald-200">
-                <Check size={16} /> Changes Saved
-              </span>
-            )}
-            <button
-              onClick={handleSave}
-              className="bg-black text-white text-sm font-semibold px-6 py-3 rounded-2xl hover:bg-gray-800 transition"
-            >
-              Save Changes
+            {saved && <span className="inline-flex h-10 items-center gap-2 rounded-xl border border-emerald-200 bg-emerald-50 px-3 text-sm font-semibold text-emerald-700"><Check className="h-4 w-4" /> Saved</span>}
+            <button type="button" onClick={() => void handleSave()} disabled={busy} className="inline-flex h-11 items-center gap-2 rounded-xl bg-slate-950 px-5 text-sm font-semibold text-white transition hover:bg-slate-800 disabled:cursor-not-allowed disabled:opacity-50">
+              {saveBranding.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
+              {saveBranding.isPending ? "Saving..." : "Save changes"}
             </button>
           </div>
         </div>
 
-        {/* Tabs */}
-        <div className="flex gap-8 mt-6 border-b">
+        <div className="mt-6 flex border-b border-slate-200">
           {(["logo", "favicon"] as const).map((tab) => (
-            <button
-              key={tab}
-              onClick={() => setActiveTab(tab)}
-              className={`pb-4 text-sm font-semibold border-b-2 transition-colors ${
-                activeTab === tab
-                  ? "border-black text-black"
-                  : "border-transparent text-gray-500 hover:text-gray-700"
-              }`}
-            >
-              {tab === "logo" ? "Logo" : "Favicon"}
+            <button key={tab} type="button" onClick={() => setActiveTab(tab)} className={`border-b-2 px-5 pb-3 text-sm font-semibold capitalize transition ${activeTab === tab ? "border-slate-950 text-slate-950" : "border-transparent text-slate-500 hover:text-slate-800"}`}>
+              {tab}
             </button>
           ))}
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-4xl mx-auto px-8 py-8">
-        {activeTab === "logo" && (
-          <div className="space-y-8">
-            {/* Primary Logo Card */}
-            <div className="bg-white border border-gray-200 rounded-3xl p-8">
-              <div className="flex justify-between items-start mb-6">
-                <div>
-                  <h3 className="text-lg font-semibold text-gray-900">Primary Logo</h3>
-                  <p className="text-sm text-gray-500 mt-1">{logo.description}</p>
-                </div>
-                {logo.file && (
-                  <span className="px-3 py-1 bg-emerald-100 text-emerald-700 text-xs font-medium rounded-full flex items-center gap-1">
-                    <Check size={14} /> Uploaded
-                  </span>
-                )}
+      {activeTab === "logo" ? (
+        <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_360px]">
+          <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <div className="flex items-center justify-between gap-4">
+              <div>
+                <h2 className="font-semibold text-slate-950">Primary logo</h2>
+                <p className="mt-1 text-sm text-slate-500">Displayed in the desktop and mobile storefront navigation.</p>
               </div>
-
-              <div className="flex gap-8">
-                {/* Preview Area */}
-                <div
-                  className="flex-1 border-2 border-dashed border-gray-300 rounded-2xl h-52 flex items-center justify-center cursor-pointer hover:border-gray-400 transition-all group"
-                  onClick={() => fileInputRef.current?.click()}
-                >
-                  {logo.preview ? (
-                    <div className="p-6 bg-white border border-gray-100 rounded-xl shadow-sm">
-                      <img
-                        src={logo.preview}
-                        alt="Logo Preview"
-                        className="max-h-28 max-w-64 object-contain"
-                      />
-                    </div>
-                  ) : (
-                    <div className="text-center">
-                      <div className="w-16 h-16 mx-auto bg-gray-100 rounded-2xl flex items-center justify-center group-hover:bg-gray-200 transition">
-                        <Upload size={28} className="text-gray-400" />
-                      </div>
-                      <p className="mt-4 font-medium text-gray-700">Upload Primary Logo</p>
-                      <p className="text-sm text-gray-400 mt-1">PNG or SVG recommended</p>
-                    </div>
-                  )}
-                </div>
-
-                {/* Upload Controls */}
-                <div className="w-80 space-y-5">
-                  <div className="bg-gray-50 border border-gray-100 rounded-2xl p-5">
-                    <p className="text-xs uppercase font-semibold text-gray-500 mb-2">Recommended Specs</p>
-                    <p className="text-sm text-gray-600 leading-relaxed">{logo.recommended}</p>
-                  </div>
-
-                  {logo.file ? (
-                    <div className="space-y-3">
-                      <div className="flex items-center gap-2 text-sm text-gray-600 bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3">
-                        <ImageIcon size={18} className="text-gray-400" />
-                        <span className="truncate">{logo.file}</span>
-                      </div>
-
-                      <div className="flex gap-3">
-                        <button
-                          onClick={() => fileInputRef.current?.click()}
-                          className="flex-1 flex items-center justify-center gap-2 border border-gray-200 bg-white py-3 rounded-2xl hover:bg-gray-50 font-medium transition"
-                        >
-                          <RefreshCw size={18} /> Replace
-                        </button>
-                        <button
-                          onClick={removeLogo}
-                          className="px-5 text-red-500 border border-red-100 bg-red-50 rounded-2xl hover:bg-red-100 transition"
-                        >
-                          <Trash2 size={20} />
-                        </button>
-                      </div>
-                    </div>
-                  ) : (
-                    <button
-                      onClick={() => fileInputRef.current?.click()}
-                      className="w-full py-4 border border-dashed border-gray-300 rounded-2xl text-sm font-semibold hover:border-gray-400 transition"
-                    >
-                      Choose Logo File
-                    </button>
-                  )}
-
-                  <input
-                    ref={fileInputRef}
-                    type="file"
-                    accept="image/*,.svg"
-                    className="hidden"
-                    onChange={handleLogoUpload}
-                  />
-                </div>
-              </div>
+              {branding.logo.url && <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-emerald-700"><Check className="h-4 w-4" /> Uploaded</span>}
             </div>
 
-            {/* Logo Settings */}
-            <div className="bg-white border border-gray-200 rounded-3xl p-8">
-              <h3 className="text-lg font-semibold mb-6">Logo Settings</h3>
-              <div className="grid grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Alt Text</label>
-                  <input
-                    type="text"
-                    value={altText}
-                    onChange={(e) => setAltText(e.target.value)}
-                    className="w-full border border-gray-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black/10"
-                    placeholder="My Store Logo"
-                  />
-                  <p className="text-xs text-gray-400 mt-1.5">For accessibility and SEO</p>
-                </div>
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Site Title (Fallback)</label>
-                  <input
-                    type="text"
-                    value={siteTitle}
-                    onChange={(e) => setSiteTitle(e.target.value)}
-                    className="w-full border border-gray-200 rounded-2xl px-4 py-3 focus:outline-none focus:ring-2 focus:ring-black/10"
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
+            <button type="button" onClick={() => logoInputRef.current?.click()} disabled={busy} className="mt-6 flex min-h-64 w-full items-center justify-center overflow-hidden rounded-xl border-2 border-dashed border-slate-300 bg-slate-50 p-8 transition hover:border-slate-400 disabled:cursor-wait">
+              {uploadingTarget === "logo" ? (
+                <Loader2 className="h-8 w-8 animate-spin text-slate-400" />
+              ) : branding.logo.url ? (
+                <img src={branding.logo.url} alt={branding.logo.alt} className="max-h-40 max-w-full object-contain" />
+              ) : (
+                <span className="text-center"><Upload className="mx-auto h-8 w-8 text-slate-400" /><span className="mt-3 block text-sm font-semibold text-slate-700">Upload primary logo</span><span className="mt-1 block text-xs text-slate-500">PNG, JPEG, WebP, or SVG up to 8 MB</span></span>
+              )}
+            </button>
+            <input ref={logoInputRef} type="file" accept={acceptedImages} className="hidden" disabled={busy} onChange={(event) => void uploadAsset(event, "logo")} />
 
-        {activeTab === "favicon" && (
-          <div className="space-y-8">
-            <div className="bg-blue-50 border border-blue-200 rounded-3xl p-5 flex gap-4">
-              <Info size={22} className="text-blue-600 mt-0.5" />
-              <p className="text-sm text-blue-700">
-                Upload different sizes for the best experience across browsers and devices. PNG with transparent background works best.
-              </p>
-            </div>
-
-            <div className="grid grid-cols-2 gap-5">
-              {favicons.map((fav) => (
-                <div key={fav.id} className="bg-white border border-gray-200 rounded-3xl p-6">
-                  <div className="flex justify-between mb-5">
-                    <div>
-                      <h4 className="font-semibold">{fav.label}</h4>
-                      <p className="text-xs text-gray-400 font-mono mt-0.5">{fav.size}</p>
-                    </div>
-                    {fav.file && <Check size={20} className="text-emerald-600" />}
-                  </div>
-
-                  <div
-                    className="border-2 border-dashed border-gray-200 rounded-2xl h-40 flex flex-col items-center justify-center cursor-pointer hover:border-gray-400 transition"
-                    onClick={() => faviconRefs.current[fav.id]?.click()}
-                  >
-                    {fav.preview ? (
-                      <img src={fav.preview} alt="" className="h-16 w-16 object-contain" />
-                    ) : (
-                      <>
-                        <ImageIcon size={32} className="text-gray-300 mb-2" />
-                        <p className="text-sm text-gray-500">Upload Image</p>
-                      </>
-                    )}
-                  </div>
-
-                  <input
-                    ref={(el) => { faviconRefs.current[fav.id] = el; }}
-                    type="file"
-                    accept="image/*,.ico"
-                    className="hidden"
-                    onChange={(e) => handleFaviconUpload(fav.id, e)}
-                  />
-
-                  {fav.file && (
-                    <div className="mt-4 flex items-center gap-3">
-                      <div className="flex-1 text-xs bg-gray-50 border border-gray-100 rounded-2xl px-4 py-3 truncate">
-                        {fav.file}
-                      </div>
-                      <button
-                        onClick={() => removeFavicon(fav.id)}
-                        className="p-3 text-red-500 hover:bg-red-50 rounded-2xl transition"
-                      >
-                        <Trash2 size={18} />
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-
-            {favicons.some((f) => !f.file) && (
-              <div className="bg-amber-50 border border-amber-200 rounded-3xl p-5 flex gap-4 text-sm">
-                <AlertCircle size={22} className="text-amber-500 mt-0.5" />
-                <p className="text-amber-700">
-                  Some sizes are missing. We recommend uploading all sizes for the best appearance.
-                </p>
+            {branding.logo.url && (
+              <div className="mt-4 flex items-center gap-3">
+                <span className="min-w-0 flex-1 truncate text-xs text-slate-500">{assetName(branding.logo)}</span>
+                <button type="button" onClick={() => logoInputRef.current?.click()} disabled={busy} className="inline-flex h-10 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"><RefreshCw className="h-4 w-4" /> Replace</button>
+                <button type="button" onClick={() => updateLogo(emptyAsset(branding.siteTitle))} disabled={busy} aria-label="Remove logo" className="flex h-10 w-10 items-center justify-center rounded-xl border border-rose-200 text-rose-600 hover:bg-rose-50"><Trash2 className="h-4 w-4" /></button>
               </div>
             )}
           </div>
-        )}
-      </div>
-    </div>
+
+          <aside className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+            <h2 className="font-semibold text-slate-950">Logo settings</h2>
+            <label className="mt-5 block">
+              <span className="text-sm font-semibold text-slate-700">Site title</span>
+              <input value={branding.siteTitle} maxLength={100} onChange={(event) => setBranding((current) => ({ ...current, siteTitle: event.target.value }))} className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-slate-400" />
+            </label>
+            <label className="mt-4 block">
+              <span className="text-sm font-semibold text-slate-700">Logo alt text</span>
+              <input value={branding.logo.alt} maxLength={180} onChange={(event) => updateLogo({ alt: event.target.value })} className="mt-2 h-11 w-full rounded-xl border border-slate-200 px-3 text-sm outline-none focus:border-slate-400" />
+              <span className="mt-2 block text-xs leading-5 text-slate-500">A short accessible description, usually the business name.</span>
+            </label>
+            <div className="mt-6 rounded-xl bg-slate-50 p-4 text-xs leading-5 text-slate-600">Use a transparent logo with clear contrast. A wide image works best in the navigation; the current local SOSBD logo remains the fallback when no upload is saved.</div>
+          </aside>
+        </div>
+      ) : (
+        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm md:p-8">
+          <div>
+            <h2 className="font-semibold text-slate-950">Browser and device icons</h2>
+            <p className="mt-1 text-sm text-slate-500">Upload square PNG or ICO files for the cleanest result.</p>
+          </div>
+          <div className="mt-6 grid gap-5 md:grid-cols-2 xl:grid-cols-4">
+            {faviconOptions.map((option) => {
+              const asset = branding.favicons[option.key];
+              const uploading = uploadingTarget === option.key;
+              return (
+                <article key={option.key} className="rounded-xl border border-slate-200 p-5">
+                  <div className="flex items-start justify-between gap-3">
+                    <div><h3 className="text-sm font-semibold text-slate-900">{option.label}</h3><p className="mt-1 text-xs text-slate-400">{option.size}</p></div>
+                    {asset.url && <Check className="h-4 w-4 text-emerald-600" />}
+                  </div>
+                  <button type="button" onClick={() => faviconRefs.current[option.key]?.click()} disabled={busy} className="mt-4 flex h-36 w-full items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 hover:border-slate-400 disabled:cursor-wait">
+                    {uploading ? <Loader2 className="h-7 w-7 animate-spin text-slate-400" /> : asset.url ? <img src={asset.url} alt="" className="h-16 w-16 object-contain" /> : <ImageIcon className="h-7 w-7 text-slate-300" />}
+                  </button>
+                  <input ref={(element) => { faviconRefs.current[option.key] = element; }} type="file" accept={acceptedImages} className="hidden" disabled={busy} onChange={(event) => void uploadAsset(event, option.key)} />
+                  <div className="mt-3 flex items-center gap-2">
+                    <span className="min-w-0 flex-1 truncate text-xs text-slate-400">{assetName(asset) || "No image"}</span>
+                    {asset.url && <button type="button" onClick={() => updateFavicon(option.key, emptyAsset())} disabled={busy} aria-label={`Remove ${option.label}`} className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg text-rose-600 hover:bg-rose-50"><Trash2 className="h-4 w-4" /></button>}
+                  </div>
+                </article>
+              );
+            })}
+          </div>
+          {faviconOptions.some(({ key }) => !branding.favicons[key].url) && (
+            <div className="mt-6 flex gap-3 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800"><AlertCircle className="h-5 w-5 shrink-0" /><p>Missing sizes use the primary logo fallback. Uploading each listed size gives the best browser and device result.</p></div>
+          )}
+        </div>
+      )}
+    </section>
   );
 }

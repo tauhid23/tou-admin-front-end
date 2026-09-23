@@ -123,7 +123,16 @@ const baseNavGroups: NavGroup[] = [
   {
     label: "Storefront",
     items: [
-      // Future: Appearance, themes, banners, branding, logo, and favicon management.
+      {
+        title: "Appearance",
+        path: "/appearance",
+        icon: Palette,
+        children: [
+          { title: "Overview", path: "/appearance" },
+          { title: "Landing Page Banner", path: "/appearance/banners-sliders" },
+          { title: "Logo & Favicon", path: "/appearance/logo-favicon" },
+        ],
+      },
       {
         title: "Pages & Content",
         path: "/storefront/about-us",
