@@ -6,6 +6,7 @@ import { AlertCircle, Loader2, RefreshCw, ShieldCheck } from "lucide-react";
 import { useMe } from "@/lib/api/queries";
 import { ApiClientError, authApi } from "@/lib/api/client";
 import { useAuthStore } from "@/lib/stores/auth-store";
+import SessionKeeper from "@/components/auth/SessionKeeper";
 
 export default function ProtectedRoute() {
   const location = useLocation();
@@ -79,5 +80,5 @@ export default function ProtectedRoute() {
     );
   }
 
-  return <Outlet />;
+  return <><SessionKeeper /><Outlet /></>;
 }

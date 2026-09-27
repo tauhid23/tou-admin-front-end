@@ -1,7 +1,7 @@
 // src/pages/dashboard/components/StatCard.tsx
 
 import {
-  DollarSign,
+  Banknote,
   ShoppingCart,
   Users,
   TrendingUp,
@@ -13,7 +13,7 @@ import { cn } from "@/lib/utils";
 import type { StatCardData } from "@/pages/dashboard/_components/types";
 
 const iconMap: Record<string, React.ElementType> = {
-  DollarSign,
+  Banknote,
   ShoppingCart,
   Users,
   TrendingUp,
@@ -25,7 +25,7 @@ interface StatCardProps {
 }
 
 export default function StatCard({ data, index }: StatCardProps) {
-  const Icon = iconMap[data.icon] ?? DollarSign;
+  const Icon = iconMap[data.icon] ?? Banknote;
   const isPositive = data.change >= 0;
 
   return (

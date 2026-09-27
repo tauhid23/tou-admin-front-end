@@ -17,7 +17,7 @@ const initialTaglines: Tagline[] = [
   },
   {
     id: 2,
-    text: "Free Shipping on Orders Over $50",
+    text: "Free Shipping on Orders Over ৳5,000",
     color: "#10b981",
     active: true,
   },

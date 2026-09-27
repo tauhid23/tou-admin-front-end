@@ -2,10 +2,10 @@
 
 import { useMemo, useState } from "react";
 import {
-  LayoutDashboard, ShoppingCart, Package, Users, Settings,
+  LayoutDashboard, ShoppingCart, Package, Users,
   ChevronLeft, ChevronRight, ChevronDown, Store, LogOut,
-  HelpCircle, Tag, Megaphone, FileText, BarChart2,
-  Share2, Mail, CreditCard, Webhook, Search,
+  Tag, FileText,
+  Share2,
   Palette, Truck, Star,
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -384,8 +384,8 @@ export default function Sidebar() {
                 <Store className="w-5 h-5 text-white" />
               </div>
               <div>
-                <p className="text-[17px] font-bold tracking-[-0.02em] text-neutral-900">TREIZE</p>
-                <p className="text-[9px] uppercase tracking-[0.125em] text-neutral-400 -mt-0.5">COMMERCE</p>
+                <p className="text-[17px] font-bold text-neutral-900">SOSBD</p>
+                <p className="-mt-0.5 text-[9px] uppercase tracking-[0.125em] text-neutral-400">ADMIN PANEL</p>
               </div>
             </motion.div>
           ) : (
@@ -540,13 +540,6 @@ export default function Sidebar() {
 
       {/* ── Footer ───────────────────────────────── */}
       <div className="shrink-0 border-t border-neutral-100 bg-white/80 backdrop-blur-sm">
-        {!collapsed && (
-          <div className="px-5 py-3 flex items-center justify-between border-b border-neutral-100 text-xs text-neutral-400">
-            <span>3 unread notifications</span>
-            <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-          </div>
-        )}
-
         <div
           className={cn(
             "flex items-center gap-3 p-3 transition-all hover:bg-neutral-50",

@@ -81,7 +81,7 @@ function getErrorMessage(error: unknown) {
 function formatCurrency(value = 0) {
   return new Intl.NumberFormat("en-US", {
     style: "currency",
-    currency: "USD",
+    currency: "BDT",
     minimumFractionDigits: 2,
   }).format(value);
 }

@@ -7,12 +7,13 @@ import {
   Eye, 
   UserPlus, 
   Users, 
-  DollarSign, 
+  Banknote,
   TrendingUp, 
   X,
   CheckCircle
 } from 'lucide-react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { formatMoney } from '@/lib/currency';
 
 
 interface GuestOrder {
@@ -162,8 +163,8 @@ const [isConverting, setIsConverting] = useState(false);
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
           {[
             { label: "Total Guest Orders", value: stats.totalGuestOrders, icon: Users, color: "blue" },
-            { label: "Revenue from Guests", value: `$${stats.totalRevenue.toFixed(2)}`, icon: DollarSign, color: "emerald" },
-            { label: "Average Order Value", value: `$${stats.avgOrderValue.toFixed(2)}`, icon: TrendingUp, color: "amber" },
+            { label: "Revenue from Guests", value: formatMoney(stats.totalRevenue), icon: Banknote, color: "emerald" },
+            { label: "Average Order Value", value: formatMoney(stats.avgOrderValue), icon: TrendingUp, color: "amber" },
             { label: "Pending Orders", value: stats.pendingOrders, icon: Users, color: "orange" },
           ].map((stat, i) => (
             <motion.div
@@ -244,7 +245,7 @@ const [isConverting, setIsConverting] = useState(false);
                   <td className="px-6 py-5 font-medium">{order.customerName}</td>
                   <td className="px-6 py-5 text-sm text-gray-600 dark:text-gray-400">{order.email}</td>
                   <td className="px-6 py-5 text-center font-medium">{order.itemsCount}</td>
-                  <td className="px-6 py-5 text-right font-semibold text-lg">${order.total.toFixed(2)}</td>
+                  <td className="px-6 py-5 text-right font-semibold text-lg">{formatMoney(order.total)}</td>
                   <td className="px-6 py-5 text-center">
                     <span className={`inline-flex px-4 py-1.5 text-xs font-medium rounded-full ${getStatusColor(order.status)}`}>
                       {order.status}
@@ -343,9 +344,9 @@ const [isConverting, setIsConverting] = useState(false);
                           <tr key={idx}>
                             <td className="px-6 py-4 font-medium">{item.name}</td>
                             <td className="px-6 py-4 text-center">{item.quantity}</td>
-                            <td className="px-6 py-4 text-right">${item.price.toFixed(2)}</td>
+                            <td className="px-6 py-4 text-right">{formatMoney(item.price)}</td>
                             <td className="px-6 py-4 text-right font-medium">
-                              ${(item.price * item.quantity).toFixed(2)}
+                              {formatMoney(item.price * item.quantity)}
                             </td>
                           </tr>
                         ))}
@@ -357,7 +358,7 @@ const [isConverting, setIsConverting] = useState(false);
                 {/* Total */}
                 <div className="flex justify-between items-center py-6 border-t text-xl">
                   <span className="font-semibold">Total Amount</span>
-                  <span className="font-bold text-3xl">${selectedOrder.total.toFixed(2)}</span>
+                  <span className="font-bold text-3xl">{formatMoney(selectedOrder.total)}</span>
                 </div>
               </div>
 

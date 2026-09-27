@@ -75,11 +75,16 @@ const initialColumns: FooterColumn[] = [
 ];
 
 const initialSocials: SocialLink[] = [
-  { id: "tiktok", label: "TikTok", href: "#", visible: true },
-  { id: "pinterest", label: "Pinterest", href: "#", visible: true },
-  { id: "instagram", label: "Instagram", href: "#", visible: false },
   { id: "facebook", label: "Facebook", href: "#", visible: false },
+  { id: "instagram", label: "Instagram", href: "#", visible: false },
+  { id: "youtube", label: "YouTube", href: "#", visible: false },
 ];
+
+const lockedCopyright = "© 2026 - SOSBD DEVELOPED BY TAUHID";
+const FacebookIcon = () => <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true"><path d="M13.5 21v-8h2.75l.41-3H13.5V8.08c0-.87.24-1.46 1.58-1.46h1.69V3.94a22.7 22.7 0 0 0-2.46-.13c-2.43 0-4.1 1.49-4.1 4.22V10H7.46v3h2.75v8h3.29z" /></svg>;
+const InstagramIcon = () => <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" className="h-4 w-4" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="5" /><circle cx="12" cy="12" r="4" /><circle cx="17.5" cy="6.5" r="1" fill="currentColor" stroke="none" /></svg>;
+const YouTubeIcon = () => <svg viewBox="0 0 24 24" fill="currentColor" className="h-4 w-4" aria-hidden="true"><path d="M23.5 6.2a3 3 0 0 0-2.1-2.1C19.5 3.6 12 3.6 12 3.6s-7.5 0-9.4.5A3 3 0 0 0 .5 6.2 31 31 0 0 0 0 12a31 31 0 0 0 .5 5.8 3 3 0 0 0 2.1 2.1c1.9.5 9.4.5 9.4.5s7.5 0 9.4-.5a3 3 0 0 0 2.1-2.1A31 31 0 0 0 24 12a31 31 0 0 0-.5-5.8zM9.6 15.6V8.4L15.8 12l-6.2 3.6z" /></svg>;
+const socialIcons = { Facebook: FacebookIcon, Instagram: InstagramIcon, YouTube: YouTubeIcon } as const;
 
 const paymentMethods = [
   "AMEX",
@@ -103,7 +108,6 @@ const inputClass =
 export default function FooterManager() {
   const [columns, setColumns] = useState(initialColumns);
   const [socials, setSocials] = useState(initialSocials);
-  const [copyright, setCopyright] = useState("© 2026 - SOSBD DEVELOPED BY TAUHID");
   const [socialDescription, setSocialDescription] = useState(
     "Connect with us and stay updated on our latest collections and offers."
   );
@@ -127,13 +131,10 @@ export default function FooterManager() {
         visible: link.visible,
       })),
     })));
-    setSocials(footer.socials.map((social, index) => ({
-      id: social._id ?? `social-${index}`,
-      label: social.label,
-      href: social.href,
-      visible: social.visible,
-    })));
-    setCopyright(footer.copyright);
+    setSocials(initialSocials.map((supported) => {
+      const social = footer.socials.find((item) => item.label.toLowerCase() === supported.label.toLowerCase());
+      return social ? { ...supported, href: social.href, visible: social.visible } : supported;
+    }));
     setSocialDescription(footer.socialDescription);
     setPayments(footer.payments);
   }, [content.data?.footer]);
@@ -148,7 +149,7 @@ export default function FooterManager() {
       socials: socials.map(({ label, href, visible }) => ({ label, href, visible })),
       socialDescription,
       payments,
-      copyright,
+      copyright: lockedCopyright,
     };
     try {
       await saveFooter.mutateAsync(payload);
@@ -220,17 +221,6 @@ export default function FooterManager() {
     setSocials((current) =>
       current.map((social) => (social.id === id ? { ...social, ...value } : social))
     );
-  };
-
-  const addSocial = () => {
-    setSocials((current) => [
-      ...current,
-      { id: `social-${Date.now()}`, label: "New profile", href: "#", visible: true },
-    ]);
-  };
-
-  const removeSocial = (id: string) => {
-    setSocials((current) => current.filter((social) => social.id !== id));
   };
 
   const removePayment = (method: string) => {
@@ -345,28 +335,28 @@ export default function FooterManager() {
                 className="mt-3 min-h-20 w-full resize-y rounded-xl border border-slate-200 px-3 py-3 text-sm outline-none focus:border-slate-400"
               />
               <div className="mt-4 space-y-3">
-                {socials.map((social) => (
-                  <div key={social.id} className="grid grid-cols-[34px_1fr_1fr_24px_24px] items-center gap-2">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-slate-100 text-xs font-bold text-slate-600">
-                      {social.label.slice(0, 2).toUpperCase()}
+                {socials.map((social) => {
+                  const Icon = socialIcons[social.label as keyof typeof socialIcons];
+                  return (
+                    <div key={social.id} className="grid gap-3 rounded-xl border border-slate-100 bg-slate-50 p-3 sm:grid-cols-[36px_110px_1fr_auto] sm:items-center">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-white text-slate-700 shadow-sm">
+                        <Icon />
+                      </div>
+                      <span className="text-sm font-semibold text-slate-700">{social.label}</span>
+                      <input type="url" value={social.href === "#" ? "" : social.href} onChange={(event) => updateSocial(social.id, { href: event.target.value || "#", ...(event.target.value ? {} : { visible: false }) })} className={cn(inputClass, "font-mono text-xs")} placeholder={`https://${social.label.toLowerCase()}.com/...`} />
+                      <label className="flex items-center gap-2 text-xs font-semibold text-slate-600">
+                        <input type="checkbox" checked={social.visible} disabled={social.href === "#"} onChange={(event) => updateSocial(social.id, { visible: event.target.checked })} />
+                        Show
+                      </label>
                     </div>
-                    <input value={social.label} onChange={(event) => updateSocial(social.id, { label: event.target.value })} className={inputClass} />
-                    <input value={social.href} onChange={(event) => updateSocial(social.id, { href: event.target.value })} className={cn(inputClass, "font-mono text-xs")} />
-                    <input type="checkbox" checked={social.visible} onChange={(event) => updateSocial(social.id, { visible: event.target.checked })} />
-                    <button type="button" onClick={() => removeSocial(social.id)} className="text-slate-400 hover:text-rose-500" aria-label={`Remove ${social.label}`}><Trash2 className="h-4 w-4" /></button>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
-              {socials.length < 12 && <button type="button" onClick={addSocial} className="mt-4 inline-flex h-9 items-center gap-2 rounded-xl border border-slate-200 px-3 text-sm font-semibold text-slate-700 hover:bg-slate-50"><Plus className="h-4 w-4" />Add social profile</button>}
             </div>
 
             <div className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
-              <h2 className="font-semibold text-slate-950">Payment & Legal</h2>
-              <label className="mt-4 block">
-                <span className="text-sm font-semibold text-slate-700">Copyright text</span>
-                <input value={copyright} onChange={(event) => setCopyright(event.target.value)} className={cn(inputClass, "mt-2")} />
-              </label>
-              <div className="mt-5">
+              <h2 className="font-semibold text-slate-950">Payment methods</h2>
+              <div className="mt-4">
                 <p className="text-sm font-semibold text-slate-700">Payment badges</p>
                 <div className="mt-3 flex flex-wrap gap-2">
                   {payments.map((method) => (
@@ -425,7 +415,7 @@ export default function FooterManager() {
                   </span>
                 ))}
               </div>
-              <p className="mt-4 text-[10px] uppercase tracking-wide text-slate-400">{copyright}</p>
+              <p className="mt-4 text-[10px] uppercase tracking-wide text-slate-400">{lockedCopyright}</p>
             </div>
           </div>
         </aside>

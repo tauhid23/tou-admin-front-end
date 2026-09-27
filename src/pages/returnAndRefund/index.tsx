@@ -3,6 +3,7 @@ import { AlertCircle, Banknote, Box, Check, CheckCircle2, ChevronLeft, ChevronRi
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useAdminOrders, useAdminReturns, useCreateReturn, useUpdateReturn, type AdminOrder, type AdminReturn, type ReturnReason, type ReturnStatus } from "@/lib/api/queries";
 import { useToast } from "@/lib/providers/ToastProvider";
+import { formatMoney } from "@/lib/currency";
 
 const statusMeta: Record<ReturnStatus, { label: string; style: string; icon: typeof Clock3 }> = {
   requested: { label: "Requested", style: "bg-amber-50 text-amber-700 ring-amber-600/15", icon: Clock3 },
@@ -13,7 +14,10 @@ const statusMeta: Record<ReturnStatus, { label: string; style: string; icon: typ
 };
 const reasonLabels: Record<ReturnReason, string> = { defective: "Defective product", damaged: "Damaged in transit", wrong_item: "Wrong item", wrong_size: "Wrong size", not_as_described: "Not as described", changed_mind: "Changed mind", other: "Other" };
 const returnReasons = Object.keys(reasonLabels) as ReturnReason[];
-const money = (value: number, currency = "USD") => new Intl.NumberFormat("en-US", { style: "currency", currency }).format(value);
+const money = (value: number, legacyCurrency?: string) => {
+  void legacyCurrency;
+  return formatMoney(value);
+};
 const shortDate = (value: string) => new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
 const dateTime = (value: string) => new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric", hour: "2-digit", minute: "2-digit" }).format(new Date(value));
 

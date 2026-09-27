@@ -3,6 +3,7 @@
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import type { TopProduct } from "@/pages/dashboard/_components/types";
+import { formatMoney } from "@/lib/currency";
 
 interface TopProductsProps {
   products: TopProduct[];
@@ -46,7 +47,7 @@ export default function TopProducts({ products }: TopProductsProps) {
                 {/* Revenue + growth */}
                 <div className="text-right shrink-0 ml-3">
                   <p className="text-[13px] font-semibold text-neutral-900">
-                    ${product.revenue.toLocaleString()}
+                    {formatMoney(product.revenue)}
                   </p>
                   <span className="text-[11px] text-neutral-400">{product.units} sold</span>
                 </div>

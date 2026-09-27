@@ -3,13 +3,17 @@ import { AlertCircle, Ban, CalendarPlus, CheckCircle2, ChevronLeft, ChevronRight
 import ConfirmDialog from "@/components/ui/ConfirmDialog";
 import { useToast } from "@/lib/providers/ToastProvider";
 import { useAdminCustomer, useAdminCustomers, useUpdateAdminCustomer, type AdminCustomer, type CustomerSegment } from "@/lib/api/queries";
+import { formatMoney } from "@/lib/currency";
 
 const segments: Array<{ value: CustomerSegment; label: string }> = [
   { value: "all", label: "All customers" }, { value: "repeat", label: "Repeat customers" },
   { value: "high-value", label: "High value" }, { value: "new", label: "New this month" },
   { value: "inactive", label: "Inactive 90+ days" }, { value: "blocked", label: "Blocked" },
 ];
-const money = (value: number, currency = "USD") => new Intl.NumberFormat("en-US", { style: "currency", currency }).format(value);
+const money = (value: number, legacyCurrency?: string) => {
+  void legacyCurrency;
+  return formatMoney(value);
+};
 const shortDate = (value: string) => new Intl.DateTimeFormat("en-GB", { day: "2-digit", month: "short", year: "numeric" }).format(new Date(value));
 const initials = (name: string) => name.split(/\s+/).map((part) => part[0]).join("").slice(0, 2).toUpperCase();
 

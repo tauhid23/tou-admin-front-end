@@ -12,6 +12,7 @@ import {
 } from "recharts";
 import { cn } from "@/lib/utils";
 import type { RevenuePoint } from "@/pages/dashboard/_components/types";
+import { formatMoney } from "@/lib/currency";
 
 interface RevenueChartProps {
   data: RevenuePoint[];
@@ -22,8 +23,8 @@ interface RevenueChartProps {
 
 type Metric = "revenue" | "orders";
 
-const metrics: { key: Metric; label: string; prefix?: string }[] = [
-  { key: "revenue", label: "Revenue", prefix: "$" },
+const metrics: { key: Metric; label: string }[] = [
+  { key: "revenue", label: "Revenue" },
   { key: "orders",  label: "Orders" },
 ];
 
@@ -31,13 +32,11 @@ const ranges = [{ label: "2W", days: 14 }, { label: "1M", days: 30 }, { label: "
 
 function CustomTooltip({ active, payload, label, metric }: any) {
   if (!active || !payload?.length) return null;
-  const prefix = metric === "revenue" ? "$" : "";
   return (
     <div className="bg-neutral-900 text-white rounded-xl px-3.5 py-2.5 shadow-xl text-[12px]">
       <p className="text-white/50 mb-0.5">{label}</p>
       <p className="font-bold text-[14px]">
-        {prefix}
-        {payload[0].value.toLocaleString()}
+        {metric === "revenue" ? formatMoney(payload[0].value) : payload[0].value.toLocaleString()}
       </p>
     </div>
   );
@@ -116,7 +115,7 @@ export default function RevenueChart({ data, range, onRangeChange }: RevenueChar
             axisLine={false}
             tickLine={false}
             tickFormatter={(v) =>
-              metric === "revenue" ? `$${(v / 1000).toFixed(0)}k` : String(v)
+              metric === "revenue" ? `${formatMoney(v / 1000, { maximumFractionDigits: 0 })}k` : String(v)
             }
           />
           <Tooltip

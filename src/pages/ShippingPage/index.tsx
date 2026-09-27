@@ -1,8 +1,12 @@
 import { ArrowRight, Banknote, Clock3, MapPin, PackageCheck, Settings2, Truck, Zap } from "lucide-react";
 import { Link } from "react-router-dom";
 import { useShippingSettings } from "@/lib/api/queries";
+import { formatMoney } from "@/lib/currency";
 
-const money = (value: number, currency = "USD") => new Intl.NumberFormat("en-US", { style: "currency", currency }).format(value);
+const money = (value: number, legacyCurrency?: string) => {
+  void legacyCurrency;
+  return formatMoney(value);
+};
 
 export default function ShippingPage() {
   const { data, isLoading, isError, refetch } = useShippingSettings();

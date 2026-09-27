@@ -1,4 +1,4 @@
-import { AlertTriangle, Bell, CalendarDays, Loader2, RefreshCw, Search } from "lucide-react";
+import { AlertTriangle, CalendarDays, Loader2, RefreshCw, Search } from "lucide-react";
 import { useState } from "react";
 import StatCard from "./_components/StatCard";
 import RevenueChart from "./_components/RevenueChart";
@@ -6,8 +6,9 @@ import RecentOrders from "./_components/RecentOrders";
 import TopProducts from "./_components/TopProducts";
 import { useDashboardOverview } from "@/lib/api/queries";
 import type { Order, StatCardData, TopProduct } from "@/pages/dashboard/_components/types";
+import { formatMoney } from "@/lib/currency";
 
-const money = (value: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD", maximumFractionDigits: 0 }).format(value);
+const money = (value: number) => formatMoney(value, { maximumFractionDigits: 0 });
 const inputDate = (date: Date) => date.toISOString().slice(0, 10);
 const dateLabel = (value: string) => new Intl.DateTimeFormat("en-US", { month: "short", day: "numeric", year: "numeric" }).format(new Date(`${value}T00:00:00`));
 const relativeTime = (value: string) => { const minutes = Math.max(0, Math.floor((Date.now() - new Date(value).getTime()) / 60000)); return minutes < 1 ? "Just now" : minutes < 60 ? `${minutes}m ago` : minutes < 1440 ? `${Math.floor(minutes / 60)}h ago` : `${Math.floor(minutes / 1440)}d ago`; };
@@ -22,7 +23,7 @@ export default function DashboardPage() {
   const data = dashboard.data;
   const summary = data?.summary;
   const cards: StatCardData[] = summary ? [
-    { title: "Net sales", value: money(summary.netRevenue), change: summary.changes.netRevenue, changeLabel: "vs prior period", icon: "DollarSign" },
+    { title: "Net sales", value: money(summary.netRevenue), change: summary.changes.netRevenue, changeLabel: "vs prior period", icon: "Banknote" },
     { title: "Est. gross profit", value: money(summary.grossProfit), change: summary.changes.grossProfit, changeLabel: "vs prior period", icon: "TrendingUp" },
     { title: "Orders", value: summary.orders.toLocaleString(), change: summary.changes.orders, changeLabel: "vs prior period", icon: "ShoppingCart" },
     { title: "Average order", value: money(summary.averageOrderValue), change: summary.changes.averageOrderValue, changeLabel: "vs prior period", icon: "Users" },
@@ -34,7 +35,7 @@ export default function DashboardPage() {
   const selectQuickRange = (nextDays: number) => { setCustomRange(null); setRangeError(""); setDays(nextDays); };
 
   return <div className="min-h-screen bg-neutral-50">
-    <header className="sticky top-0 z-10 border-b border-neutral-100 bg-neutral-50/90 backdrop-blur-sm"><div className="flex h-[66px] items-center justify-between px-6"><div><h1 className="text-[17px] font-bold leading-none text-neutral-900">Business dashboard</h1><p className="mt-1 text-[12px] text-neutral-400">Live sales, profitability, and operations health</p></div><div className="flex items-center gap-2"><div className="hidden w-52 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 sm:flex"><Search className="h-3.5 w-3.5 text-neutral-400" /><input type="text" placeholder="Search..." className="w-full bg-transparent text-[13px] outline-none" /></div><button type="button" onClick={() => dashboard.refetch()} aria-label="Refresh dashboard" className="flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-500 hover:text-neutral-900"><RefreshCw className={`h-3.5 w-3.5 ${dashboard.isFetching ? "animate-spin" : ""}`} /></button><button type="button" aria-label="Notifications" className="relative flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-500"><Bell className="h-3.5 w-3.5" /><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-neutral-900" /></button></div></div></header>
+    <header className="sticky top-0 z-10 border-b border-neutral-100 bg-neutral-50/90 backdrop-blur-sm"><div className="flex h-[66px] items-center justify-between px-6"><div><h1 className="text-[17px] font-bold leading-none text-neutral-900">Business dashboard</h1><p className="mt-1 text-[12px] text-neutral-400">Live sales, profitability, and operations health</p></div><div className="flex items-center gap-2"><div className="hidden w-52 items-center gap-2 rounded-xl border border-neutral-200 bg-white px-3 py-2 sm:flex"><Search className="h-3.5 w-3.5 text-neutral-400" /><input type="text" placeholder="Search..." className="w-full bg-transparent text-[13px] outline-none" /></div><button type="button" onClick={() => dashboard.refetch()} aria-label="Refresh dashboard" className="flex h-9 w-9 items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-500 hover:text-neutral-900"><RefreshCw className={`h-3.5 w-3.5 ${dashboard.isFetching ? "animate-spin" : ""}`} /></button></div></div></header>
     <main className="mx-auto max-w-[1600px] space-y-6 p-6">
       {!data && dashboard.isLoading ? <div className="flex min-h-96 items-center justify-center text-sm text-neutral-500"><Loader2 className="mr-2 h-5 w-5 animate-spin" />Loading live business data...</div> : dashboard.isError && !data ? <div className="rounded-2xl border border-rose-200 bg-rose-50 p-6 text-sm text-rose-700">Dashboard data could not be loaded. <button type="button" onClick={() => dashboard.refetch()} className="font-bold underline">Try again</button></div> : <>
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-4">{cards.map((card, index) => <StatCard key={card.title} data={card} index={index} />)}</div>

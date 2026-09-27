@@ -4,6 +4,7 @@ import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import type { Order } from "@/pages/dashboard/_components/types";
+import { formatMoney } from "@/lib/currency";
 
 interface RecentOrdersProps {
   orders: Order[];
@@ -90,7 +91,7 @@ export default function RecentOrders({ orders }: RecentOrdersProps) {
                   {/* Amount */}
                   <td className="px-5 py-3.5">
                     <span className="text-[13px] font-semibold text-neutral-900">
-                      ${order.amount.toFixed(2)}
+                      {formatMoney(order.amount)}
                     </span>
                   </td>
 
